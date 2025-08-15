@@ -43,7 +43,7 @@ public class SeatController {
             bookingService.selectSeat(request.getBookingId(), request.getSeatId());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            return ResponseEntity.status(HttpStatus.INSUFFICIENT_SPACE_ON_RESOURCE).build();
         }
     }
 
@@ -53,7 +53,7 @@ public class SeatController {
             bookingService.releaseSeat(request.getSeatId());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            return ResponseEntity.status(HttpStatus.INSUFFICIENT_SPACE_ON_RESOURCE).build();
         }
     }
 }
