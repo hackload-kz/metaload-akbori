@@ -21,23 +21,19 @@ import java.util.stream.Collectors;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
-    private final EventService eventService;
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
 
-    public BookingService(BookingRepository bookingRepository, EventService eventService,
-            SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository) {
+    public BookingService(BookingRepository bookingRepository,
+                          SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository) {
         this.bookingRepository = bookingRepository;
-        this.eventService = eventService;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
     }
 
     public Booking createBooking(CreateBookingRequest request) {
-        Event event = eventService.findById(request.getEventId());
-
         Booking booking = new Booking();
-        booking.setEvent(event);
+        booking.setEventId(request.getEventId());
         booking.setStatus(Booking.BookingStatus.PENDING);
 
         return bookingRepository.save(booking);
@@ -122,7 +118,7 @@ public class BookingService {
     private ListBookingsResponseItem mapToResponseItem(Booking booking) {
         ListBookingsResponseItem item = new ListBookingsResponseItem();
         item.setId(booking.getId());
-        item.setEventId(booking.getEvent().getId());
+        item.setEventId(booking.getEventId());
 
         // Получаем места для этого бронирования
         List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(booking.getId());

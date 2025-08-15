@@ -1,6 +1,7 @@
 package com.metaload.biletter.model;
 
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,9 +15,7 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    private Long eventId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -51,6 +50,14 @@ public class Booking {
         updatedAt = LocalDateTime.now();
     }
 
+    public Long getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(Long eventId) {
+        this.eventId = eventId;
+    }
+
     public enum BookingStatus {
         PENDING, PAYMENT_PENDING, CONFIRMED, CANCELLED
     }
@@ -62,14 +69,6 @@ public class Booking {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Event getEvent() {
-        return event;
-    }
-
-    public void setEvent(Event event) {
-        this.event = event;
     }
 
     public BookingStatus getStatus() {

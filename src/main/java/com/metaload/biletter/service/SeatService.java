@@ -59,7 +59,7 @@ public class SeatService {
         for (int row = 1; row <= rows; row++) {
             for (int seatNumber = 1; seatNumber <= seatsPerRow; seatNumber++) {
                 Seat seat = new Seat();
-                seat.setEvent(eventService.findById(eventId));
+                seat.setEventId(eventId);
                 seat.setRowNumber(row);
                 seat.setSeatNumber(seatNumber);
                 seat.setStatus(SeatStatus.FREE);

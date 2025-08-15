@@ -1,6 +1,7 @@
 package com.metaload.biletter.model;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,9 +12,7 @@ public class Seat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    private Long eventId;
 
     @Column(name = "row_number", nullable = false)
     private Integer rowNumber;
@@ -42,6 +41,14 @@ public class Seat {
         updatedAt = LocalDateTime.now();
     }
 
+    public Long getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(Long eventId) {
+        this.eventId = eventId;
+    }
+
     public enum SeatStatus {
         FREE, RESERVED, SOLD
     }
@@ -53,14 +60,6 @@ public class Seat {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Event getEvent() {
-        return event;
-    }
-
-    public void setEvent(Event event) {
-        this.event = event;
     }
 
     public Integer getRowNumber() {

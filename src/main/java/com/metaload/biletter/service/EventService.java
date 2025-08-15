@@ -19,28 +19,12 @@ public class EventService {
         this.eventRepository = eventRepository;
     }
 
-    public Event createEvent(CreateEventRequest request) {
-        Event event = new Event();
-        event.setTitle(request.getTitle());
-        event.setExternal(request.getExternal());
-
-        return eventRepository.save(event);
-    }
-
-    public List<Event> findEvents(String query, LocalDate date) {
-        if (query == null && date == null) {
-            return eventRepository.findAll();
-        }
-
-        return eventRepository.findEventsByQueryAndDate(query, date);
+    public List<Event> find(String query, LocalDate date) {
+        return eventRepository.find(query, date);
     }
 
     public Event findById(Long id) {
-        return eventRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+        return eventRepository.findById(id);
     }
 
-    public List<Event> findByExternal(Boolean external) {
-        return eventRepository.findByExternal(external);
-    }
 }

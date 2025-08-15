@@ -1,40 +1,15 @@
 package com.metaload.biletter.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "events")
 public class Event {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "title", nullable = false)
     private String title;
+    private String description;
+    private String type;
+    private LocalDateTime datetimeStart;
+    private String provider;
 
-    @Column(name = "external")
-    private Boolean external = false;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -51,27 +26,35 @@ public class Event {
         this.title = title;
     }
 
-    public Boolean getExternal() {
-        return external;
+    public String getDescription() {
+        return description;
     }
 
-    public void setExternal(Boolean external) {
-        this.external = external;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public String getType() {
+        return type;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public LocalDateTime getDatetimeStart() {
+        return datetimeStart;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setDatetimeStart(LocalDateTime datetimeStart) {
+        this.datetimeStart = datetimeStart;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 }
