@@ -209,3 +209,8 @@ __marimo__/
 .idea/
 application-*_local.yml
 .DS_Store
+
+# Large data files (now tracked by Git LFS)
+# src/main/resources/db/data/
+# src/main/resources/db/migration/V4__Add_users.sql
+# src/main/resources/db/migration/V*__Add_events*.sql

@@ -17,6 +17,9 @@ public class Booking {
 
     private Long eventId;
 
+    @Column(name = "user_id")
+    private Integer userId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private BookingStatus status = BookingStatus.PENDING;
@@ -56,6 +59,14 @@ public class Booking {
 
     public void setEventId(Long eventId) {
         this.eventId = eventId;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public enum BookingStatus {

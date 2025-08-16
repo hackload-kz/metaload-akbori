@@ -23,24 +23,29 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final UserService userService;
 
     public BookingService(BookingRepository bookingRepository,
-            SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository) {
+            SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository,
+            UserService userService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
+        this.userService = userService;
     }
 
     public Booking createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
         booking.setEventId(request.getEventId());
+        booking.setUserId(userService.getCurrentUser().getUserId());
         booking.setStatus(Booking.BookingStatus.PENDING);
 
         return bookingRepository.save(booking);
     }
 
     public List<ListBookingsResponseItem> getAllBookings() {
-        List<Booking> bookings = bookingRepository.findAll();
+        Integer currentUserId = userService.getCurrentUser().getUserId();
+        List<Booking> bookings = bookingRepository.findByUserId(currentUserId);
 
         return bookings.stream()
                 .map(this::mapToResponseItem)
