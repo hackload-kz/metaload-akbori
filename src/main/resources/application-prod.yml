@@ -63,7 +63,7 @@ spring:
 
 # App Configuration
 app:
-  url: ${APP_URL:http://localhost:8081/api}
+  url: ${APP_URL:https://metaload-akbori.hub.hackload.kz/api}
   paymentGateway:
     url: ${PAYMENT_GATEWAY_URL:https://hub.hackload.kz/payment-provider/common/api/v1}
     teamSlug: ${PAYMENT_TEAM_SLUG:metaload-akbori}

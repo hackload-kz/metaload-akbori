@@ -1,6 +1,5 @@
 package com.metaload.biletter.service;
 
-import com.metaload.biletter.config.ExternalServiceConfig;
 import com.metaload.biletter.dto.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,22 +15,22 @@ import java.util.TreeMap;
 
 @Service
 public class PaymentGatewayService {
-
     private static final Logger logger = LoggerFactory.getLogger(PaymentGatewayService.class);
 
     private final WebClient webClient;
-    private final ExternalServiceConfig config;
 
-    @Value("${server.servlet.context-path:/api}")
-    private String contextPath;
+    @Value("${app.url}")
+    private String ticketServiceUrl;
+    @Value("${app.paymentGateway.url}")
+    private String paymentGatewayUrl;
+    @Value("${app.paymentGateway.teamSlug}")
+    private String teamSlug;
+    @Value("${app.paymentGateway.password}")
+    private String password;
 
-    @Value("${server.port:8081}")
-    private String serverPort;
-
-    public PaymentGatewayService(WebClient.Builder webClientBuilder, ExternalServiceConfig config) {
-        this.config = config;
+    public PaymentGatewayService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
-                .baseUrl(config.getPaymentGateway().getBaseUrl())
+                .baseUrl(paymentGatewayUrl)
                 .build();
     }
 
@@ -43,7 +42,7 @@ public class PaymentGatewayService {
         request.setToken(token);
 
         return webClient.post()
-                .uri("/api/{version}/PaymentInit/init", config.getPaymentGateway().getApiVersion())
+                .uri("/PaymentInit/init")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentInitResponse.class)
@@ -57,7 +56,7 @@ public class PaymentGatewayService {
     public PaymentInitRequest createPaymentRequest(String orderId, Long amount, String currency, String description,
             String email) {
         PaymentInitRequest request = new PaymentInitRequest();
-        request.setTeamSlug(config.getPaymentGateway().getTeamSlug());
+        request.setTeamSlug(teamSlug);
         request.setOrderId(orderId);
         request.setAmount(amount);
         request.setCurrency(currency);
@@ -67,10 +66,9 @@ public class PaymentGatewayService {
         request.setPaymentExpiry(3600); // 1 час
 
         // Устанавливаем правильные URL для redirect и webhook
-        String baseUrl = "http://localhost:" + serverPort + contextPath;
-        request.setSuccessURL(baseUrl + "/payments/success?orderId=" + orderId);
-        request.setFailURL(baseUrl + "/payments/fail?orderId=" + orderId);
-        request.setNotificationURL(baseUrl + "/payments/notifications");
+        request.setSuccessURL(ticketServiceUrl + "/payments/success?orderId=" + orderId);
+        request.setFailURL(ticketServiceUrl + "/payments/fail?orderId=" + orderId);
+        request.setNotificationURL(ticketServiceUrl + "/payments/notifications");
 
         return request;
     }
@@ -79,7 +77,7 @@ public class PaymentGatewayService {
         logger.info("Checking payment status for paymentId: {} or orderId: {}", paymentId, orderId);
 
         PaymentCheckRequest request = new PaymentCheckRequest();
-        request.setTeamSlug(config.getPaymentGateway().getTeamSlug());
+        request.setTeamSlug(teamSlug);
 
         if (paymentId != null) {
             request.setPaymentId(paymentId);
@@ -92,7 +90,7 @@ public class PaymentGatewayService {
         request.setToken(token);
 
         return webClient.post()
-                .uri("/api/{version}/PaymentCheck/check", config.getPaymentGateway().getApiVersion())
+                .uri("/PaymentCheck/check")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentCheckResponse.class)
@@ -104,7 +102,7 @@ public class PaymentGatewayService {
         logger.info("Confirming payment: {} with amount: {}", paymentId, amount);
 
         PaymentConfirmRequest request = new PaymentConfirmRequest();
-        request.setTeamSlug(config.getPaymentGateway().getTeamSlug());
+        request.setTeamSlug(teamSlug);
         request.setPaymentId(paymentId);
         request.setAmount(amount);
 
@@ -113,7 +111,7 @@ public class PaymentGatewayService {
         request.setToken(token);
 
         return webClient.post()
-                .uri("/api/{version}/PaymentConfirm/confirm", config.getPaymentGateway().getApiVersion())
+                .uri("/PaymentConfirm/confirm")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentConfirmResponse.class)
@@ -125,7 +123,7 @@ public class PaymentGatewayService {
         logger.info("Cancelling payment: {} with reason: {}", paymentId, reason);
 
         PaymentCancelRequest request = new PaymentCancelRequest();
-        request.setTeamSlug(config.getPaymentGateway().getTeamSlug());
+        request.setTeamSlug(teamSlug);
         request.setPaymentId(paymentId);
         request.setReason(reason);
 
@@ -134,7 +132,7 @@ public class PaymentGatewayService {
         request.setToken(token);
 
         return webClient.post()
-                .uri("/api/{version}/PaymentCancel/cancel", config.getPaymentGateway().getApiVersion())
+                .uri("/PaymentCancel/cancel")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PaymentCancelResponse.class)
@@ -180,7 +178,7 @@ public class PaymentGatewayService {
             }
 
             // Add password
-            tokenString.append(config.getPaymentGateway().getPassword());
+            tokenString.append(password);
 
             // Generate SHA-256 hash
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
