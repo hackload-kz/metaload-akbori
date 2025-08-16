@@ -7,6 +7,8 @@ import com.metaload.biletter.model.Seat.SeatStatus;
 import com.metaload.biletter.service.BookingService;
 import com.metaload.biletter.service.SeatService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/seats")
 public class SeatController {
+
+    private static final Logger log = LoggerFactory.getLogger(SeatController.class);
 
     private final SeatService seatService;
     private final BookingService bookingService;
@@ -43,6 +47,8 @@ public class SeatController {
             bookingService.selectSeat(request.getBookingId(), request.getSeatId());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
+            log.error("Error while selecting seat {} for booking {}",
+                    request.getSeatId(), request.getBookingId(), e);
             return ResponseEntity.status(HttpStatus.INSUFFICIENT_SPACE_ON_RESOURCE).build();
         }
     }
