@@ -58,20 +58,14 @@ public class BookingService {
         booking.setEvent(event);
         booking.setStatus(Booking.BookingStatus.PENDING);
 
-        if (EventService.MAIN_EVENT.equals(request.getEventId())) {
-            //CreateOrderResponse response = eventProviderService.createOrder().block();
-            //booking.setOrderId(response.getOrderId());
-        } else {
-            // Генерируем уникальный orderId
-            String orderId = UuidCreator.getTimeOrderedEpoch().toString();
-            booking.setOrderId(orderId);
-        }
-
         // Устанавливаем userId
         User currentUser = userService.getCurrentUser();
         booking.setUserId(currentUser.getUserId());
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        // Сейчас Заказ создается асинхронно, можно сделать синхронным если нужно
+        // createOrderForBooking(savedBooking.getId());
 
         // Публикуем доменное событие о создании брони
         BookingCreatedEvent bookingEvent = new BookingCreatedEvent(
@@ -238,11 +232,15 @@ public class BookingService {
     @Transactional
     public void createOrderForBooking(Long bookingId) {
         Booking booking = findById(bookingId);
-        if (booking.getOrderId() == null &&
-                EventService.MAIN_EVENT.equals(booking.getEvent().getId())) {
+
+        if (EventService.MAIN_EVENT.equals(booking.getEvent().getId())) {
             CreateOrderResponse response = eventProviderService.createOrder().block();
             booking.setOrderId(response.getOrderId());
-            bookingRepository.save(booking);
+        } else {
+            String orderId = UuidCreator.getTimeOrderedEpoch().toString();
+            booking.setOrderId(orderId);
         }
+
+        bookingRepository.save(booking);
     }
 }
