@@ -29,9 +29,6 @@ public class Booking {
     @Column(name = "total_amount", precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
-    @Column(name = "currency", length = 3)
-    private String currency = "RUB";
-
     @Column(name = "payment_id")
     private String paymentId;
 
@@ -101,14 +98,6 @@ public class Booking {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
     }
 
     public String getPaymentId() {

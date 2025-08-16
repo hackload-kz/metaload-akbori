@@ -76,21 +76,25 @@ public class BookingService {
 
     public String initiatePayment(Long bookingId) {
         Booking booking = findById(bookingId);
+
+        // todo обеспечить конкурентный доступ, чтоб не было возможности сделать двойной платеж
+
         if (booking.getStatus() != Booking.BookingStatus.PENDING) {
             throw new RuntimeException("Cannot initiate payment for booking with status: " + booking.getStatus());
         }
 
         // Обновляем статус на PAYMENT_PENDING
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
+        // todo вычислить total_amount, это сумма цен мест по этому бронированию
+        // сохранить
         bookingRepository.save(booking);
 
         try {
             // Создаем запрос на создание платежа
             PaymentInitRequest paymentRequest = paymentGatewayService.createPaymentRequest(
                     booking.getOrderId(),
-                    booking.getTotalAmount() != null ? booking.getTotalAmount().longValue() * 100 : 0L, // Конвертируем
-                                                                                                        // в копейки
-                    booking.getCurrency() != null ? booking.getCurrency() : "RUB",
+                    booking.getTotalAmount().longValue(),
+                    "KZT",
                     "Оплата бронирования #" + booking.getOrderId(),
                     "user@example.com" // В реальном приложении берем из контекста пользователя
             );
