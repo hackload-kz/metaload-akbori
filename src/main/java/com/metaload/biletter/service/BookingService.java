@@ -1,71 +1,95 @@
 package com.metaload.biletter.service;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.metaload.biletter.dto.CreateBookingRequest;
 import com.metaload.biletter.dto.ListBookingsResponseItem;
 import com.metaload.biletter.dto.ListBookingsResponseItemSeat;
 import com.metaload.biletter.dto.payment.PaymentInitRequest;
 import com.metaload.biletter.model.*;
+import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
 import com.metaload.biletter.repository.BookingRepository;
 import com.metaload.biletter.repository.BookingSeatRepository;
 import com.metaload.biletter.repository.SeatRepository;
+import com.metaload.biletter.service.domainevents.DomainEventPublisherService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class BookingService {
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private final BookingRepository bookingRepository;
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final PaymentGatewayService paymentGatewayService;
-    private final EventService eventService;
     private final UserService userService;
+    private final EventService eventService;
+    private final EventProviderService eventProviderService;
+    private final DomainEventPublisherService domainEventPublisherService;
 
     public BookingService(BookingRepository bookingRepository,
-                          SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository,
-                          PaymentGatewayService paymentGatewayService, EventService eventService, UserService userService) {
+                          SeatRepository seatRepository,
+                          BookingSeatRepository bookingSeatRepository,
+                          PaymentGatewayService paymentGatewayService,
+                          UserService userService,
+                          EventService eventService,
+                          EventProviderService eventProviderService,
+                          DomainEventPublisherService domainEventPublisherService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.paymentGatewayService = paymentGatewayService;
-        this.eventService = eventService;
         this.userService = userService;
+        this.eventService = eventService;
+        this.eventProviderService = eventProviderService;
+        this.domainEventPublisherService = domainEventPublisherService;
     }
 
+    @Transactional
     public Booking createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
         Event event = eventService.findById(request.getEventId());
         booking.setEvent(event);
         booking.setStatus(Booking.BookingStatus.PENDING);
 
-        // Генерируем уникальный orderId
-        String orderId = generateOrderId();
-        booking.setOrderId(orderId);
+        if (EventService.MAIN_EVENT.equals(request.getEventId())) {
+            //CreateOrderResponse response = eventProviderService.createOrder().block();
+            //booking.setOrderId(response.getOrderId());
+        } else {
+            // Генерируем уникальный orderId
+            String orderId = UuidCreator.getTimeOrderedEpoch().toString();
+            booking.setOrderId(orderId);
+        }
 
-        // Устанавливаем userId (в реальном приложении берем из контекста безопасности)
-        booking.setUserId(1); // TODO: Заменить на получение из контекста пользователя
+        // Устанавливаем userId
+        User currentUser = userService.getCurrentUser();
+        booking.setUserId(currentUser.getUserId());
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // Публикуем доменное событие о создании брони
+        BookingCreatedEvent bookingEvent = new BookingCreatedEvent(
+                savedBooking.getId(),
+                savedBooking.getOrderId(),
+                savedBooking.getEvent().getId(),
+                savedBooking.getUserId(),
+                savedBooking.getStatus().name(),
+                savedBooking.getCreatedAt()
+        );
+        domainEventPublisherService.publishBookingCreated(bookingEvent);
+
+        return savedBooking;
     }
 
-    /**
-     * Генерирует уникальный orderId для бронирования
-     */
-    private String generateOrderId() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String random = String.valueOf((int) (Math.random() * 1000));
-        return "BK" + timestamp + random;
-    }
-
+    @Transactional(readOnly = true)
     public List<ListBookingsResponseItem> getAllBookings() {
         // В реальном приложении фильтруем по текущему пользователю
-        Integer currentUserId = 1; // TODO: Заменить на получение из контекста безопасности
+        Integer currentUserId = userService.getCurrentUser().getUserId();
         List<Booking> bookings = bookingRepository.findByUserId(currentUserId);
 
         return bookings.stream()
@@ -73,8 +97,11 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public String initiatePayment(Long bookingId) {
         Booking booking = findById(bookingId);
+
+        checkBookingOwner(booking);
 
         // todo обеспечить конкурентный доступ, чтоб не было возможности сделать двойной платеж
 
@@ -113,6 +140,7 @@ public class BookingService {
         }
     }
 
+    @Transactional
     public void cancelBooking(Long bookingId) {
         Booking booking = findById(bookingId);
 
@@ -132,6 +160,7 @@ public class BookingService {
         bookingRepository.save(booking);
     }
 
+    @Transactional
     public void selectSeat(Long bookingId, Long seatId) {
         Booking booking = findById(bookingId);
         Seat seat = seatRepository.findById(seatId)
@@ -153,6 +182,7 @@ public class BookingService {
         bookingSeatRepository.save(bookingSeat);
     }
 
+    @Transactional
     public void releaseSeat(Long seatId) {
         Seat seat = seatRepository.findById(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
@@ -170,11 +200,13 @@ public class BookingService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Booking findById(Long id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
     }
 
+    @Transactional(readOnly = true)
     public Booking findByOrderId(String orderId) {
         return bookingRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with orderId: " + orderId));
@@ -194,4 +226,12 @@ public class BookingService {
         item.setSeats(seats);
         return item;
     }
+
+    private void checkBookingOwner(Booking booking) {
+        User currentUser = userService.getCurrentUser();
+        if (!booking.getUserId().equals(currentUser.getUserId())) {
+            throw new RuntimeException("Cannot initiate payment for someone else's booking.");
+        }
+    }
+
 }

@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 @Transactional
 public class EventService {
 
+    public static final Long MAIN_EVENT = 1L;
+
     private final EventRepository eventRepository;
 
     public EventService(EventRepository eventRepository) {

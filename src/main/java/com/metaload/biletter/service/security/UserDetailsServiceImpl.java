@@ -1,6 +1,7 @@
-package com.metaload.biletter.service;
+package com.metaload.biletter.service.security;
 
 import com.metaload.biletter.model.User;
+import com.metaload.biletter.service.UserService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
