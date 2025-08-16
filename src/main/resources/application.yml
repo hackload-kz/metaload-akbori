@@ -12,6 +12,18 @@ spring:
     username: ${DB_USERNAME:biletter_user}
     password: ${DB_PASSWORD:biletter_pass}
     driver-class-name: org.postgresql.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      maximum-pool-size: 100
+      minimum-idle: 20
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 5000
+      leak-detection-threshold: 30000
+      pool-name: HikariPool-Biletter
+      connection-init-sql: "SET statement_timeout = '60s'"
+      validation-timeout: 3000
+      keepalive-time: 300000
   
   jpa:
     hibernate:
