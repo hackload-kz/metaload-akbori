@@ -4,10 +4,7 @@ import com.metaload.biletter.dto.CreateBookingRequest;
 import com.metaload.biletter.dto.ListBookingsResponseItem;
 import com.metaload.biletter.dto.ListBookingsResponseItemSeat;
 import com.metaload.biletter.dto.payment.PaymentInitRequest;
-import com.metaload.biletter.model.Booking;
-import com.metaload.biletter.model.BookingSeat;
-import com.metaload.biletter.model.Event;
-import com.metaload.biletter.model.Seat;
+import com.metaload.biletter.model.*;
 import com.metaload.biletter.repository.BookingRepository;
 import com.metaload.biletter.repository.BookingSeatRepository;
 import com.metaload.biletter.repository.SeatRepository;
@@ -28,15 +25,17 @@ public class BookingService {
     private final BookingSeatRepository bookingSeatRepository;
     private final PaymentGatewayService paymentGatewayService;
     private final EventService eventService;
+    private final UserService userService;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository,
-                          PaymentGatewayService paymentGatewayService, EventService eventService) {
+                          PaymentGatewayService paymentGatewayService, EventService eventService, UserService userService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.paymentGatewayService = paymentGatewayService;
         this.eventService = eventService;
+        this.userService = userService;
     }
 
     public Booking createBooking(CreateBookingRequest request) {
@@ -86,17 +85,19 @@ public class BookingService {
         // Обновляем статус на PAYMENT_PENDING
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
         // todo вычислить total_amount, это сумма цен мест по этому бронированию
+        long totalAmount = booking.getTotalAmount().longValue();
         // сохранить
         bookingRepository.save(booking);
 
+        String email = userService.getCurrentUser().getEmail();
         try {
             // Создаем запрос на создание платежа
             PaymentInitRequest paymentRequest = paymentGatewayService.createPaymentRequest(
                     booking.getOrderId(),
-                    booking.getTotalAmount().longValue(),
+                    totalAmount,
                     "KZT",
                     "Оплата бронирования #" + booking.getOrderId(),
-                    "user@example.com" // В реальном приложении берем из контекста пользователя
+                    email
             );
 
             // Создаем платеж в платежном шлюзе
