@@ -26,12 +26,17 @@ public class EventProviderService {
     public Mono<CreateOrderResponse> createOrder() {
         logger.info("Creating order in Hackload service");
 
-        return webClient.post()
+        long startTime = System.currentTimeMillis();
+        Mono<CreateOrderResponse> createOrderResponseMono = webClient.post()
                 .uri("/api/partners/{version}/orders", config.getHackload().getApiVersion())
                 .retrieve()
                 .bodyToMono(CreateOrderResponse.class)
                 .doOnSuccess(response -> logger.info("Order created successfully: {}", response.getOrderId()))
                 .doOnError(error -> logger.error("Failed to create order: {}", error.getMessage()));
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Order created, exec time: {}",  (endTime - startTime));
+        return createOrderResponseMono;
     }
 
     public Mono<OrderDetails> getOrder(String orderId) {

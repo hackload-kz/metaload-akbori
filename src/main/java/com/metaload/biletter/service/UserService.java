@@ -2,6 +2,7 @@ package com.metaload.biletter.service;
 
 import com.metaload.biletter.model.User;
 import com.metaload.biletter.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -10,16 +11,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
-
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private UserService selfProxy;
 
     public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Current user not found: " + email));
+        return selfProxy.findByEmail(email);
     }
 
     @Cacheable(value = "users", key = "#email")
