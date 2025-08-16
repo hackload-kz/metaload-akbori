@@ -27,19 +27,22 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final PaymentGatewayService paymentGatewayService;
+    private final EventService eventService;
 
     public BookingService(BookingRepository bookingRepository,
-            SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository,
-            PaymentGatewayService paymentGatewayService) {
+                          SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository,
+                          PaymentGatewayService paymentGatewayService, EventService eventService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.paymentGatewayService = paymentGatewayService;
+        this.eventService = eventService;
     }
 
     public Booking createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
-        booking.setEventId(request.getEventId());
+        Event event = eventService.findById(request.getEventId());
+        booking.setEvent(event);
         booking.setStatus(Booking.BookingStatus.PENDING);
 
         // Генерируем уникальный orderId
@@ -175,7 +178,7 @@ public class BookingService {
     private ListBookingsResponseItem mapToResponseItem(Booking booking) {
         ListBookingsResponseItem item = new ListBookingsResponseItem();
         item.setId(booking.getId());
-        item.setEventId(booking.getEventId());
+        item.setEventId(booking.getEvent().getId());
 
         // Получаем места для этого бронирования
         List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(booking.getId());

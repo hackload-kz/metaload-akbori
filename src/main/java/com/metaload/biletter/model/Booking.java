@@ -15,7 +15,9 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long eventId;
+    @ManyToOne
+    @JoinColumn(name = "event_id")
+    private Event event;
 
     @Column(name = "user_id")
     private Integer userId;
@@ -56,14 +58,6 @@ public class Booking {
         updatedAt = LocalDateTime.now();
     }
 
-    public Long getEventId() {
-        return eventId;
-    }
-
-    public void setEventId(Long eventId) {
-        this.eventId = eventId;
-    }
-
     public Integer getUserId() {
         return userId;
     }
@@ -83,6 +77,14 @@ public class Booking {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public void setEvent(Event event) {
+        this.event = event;
     }
 
     public BookingStatus getStatus() {

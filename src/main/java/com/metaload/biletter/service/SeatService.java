@@ -1,6 +1,7 @@
 package com.metaload.biletter.service;
 
 import com.metaload.biletter.dto.ListSeatsResponseItem;
+import com.metaload.biletter.model.Event;
 import com.metaload.biletter.model.Seat;
 import com.metaload.biletter.model.Seat.SeatStatus;
 import com.metaload.biletter.repository.SeatRepository;
@@ -27,7 +28,7 @@ public class SeatService {
     }
 
     public List<ListSeatsResponseItem> getSeats(Long eventId, Integer page, Integer pageSize,
-            Integer row, SeatStatus status) {
+                                                Integer row, SeatStatus status) {
         // Проверяем, что событие существует
         eventService.findById(eventId);
 
@@ -60,7 +61,8 @@ public class SeatService {
         for (int row = 1; row <= rows; row++) {
             for (int seatNumber = 1; seatNumber <= seatsPerRow; seatNumber++) {
                 Seat seat = new Seat();
-                seat.setEventId(eventId);
+                Event event = eventService.findById(eventId);
+                seat.setEvent(event);
                 seat.setRowNumber(row);
                 seat.setSeatNumber(seatNumber);
                 seat.setStatus(SeatStatus.FREE);

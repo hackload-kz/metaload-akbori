@@ -1,58 +1,23 @@
 package com.metaload.biletter.repository;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.metaload.biletter.model.Event;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Repository
-public class EventRepository {
-    private final List<Event> events;
+public interface EventRepository extends JpaRepository<Event, Long> {
+    @Query("select e from Event e where (e.title ilike concat('%',:query,'%') or e.description ilike concat('%',:query,'%')) and e.datetimeStart >= :date order by e.datetimeStart")
+    Page<Event> find(String query, LocalDateTime date, Pageable pageable);
 
-    public EventRepository() {
-        List<Event> events;
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
-            objectMapper.registerModule(new JavaTimeModule());
-            String json = "requirements/events.json";
-            events = objectMapper.readValue(new File(json), new TypeReference<>() {
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        this.events = events;
-    }
+    @Query("select e from Event e where (:date is null or e.datetimeStart >= :date) order by e.datetimeStart")
+    Page<Event> find(LocalDateTime date, Pageable pageable);
 
-    public Event findById(Long id) {
-        return events.stream().filter(e -> e.getId().equals(id)).findFirst().orElse(null);
-    }
+    @Query("select e from Event e where (e.title ilike concat('%',:query,'%') or e.description ilike concat('%',:query,'%')) order by e.datetimeStart")
+    Page<Event> find(String query, Pageable pageable);
 
-    public List<Event> find(String query, LocalDate date) {
-        if (query == null && date == null) {
-            return events;
-        }
-
-        List<Event> filteredEvents = new ArrayList<>(events);
-        if (query != null) {
-            filteredEvents = filteredEvents.stream()
-                    .filter(event -> event.getTitle().toLowerCase().contains(query.toLowerCase()))
-                    .toList();
-        }
-        if (date != null) {
-            filteredEvents = filteredEvents
-                    .stream()
-                    .filter(event -> event.getDatetimeStart().toLocalDate().isAfter(date))
-                    .toList();
-        }
-        return filteredEvents;
-    }
 }

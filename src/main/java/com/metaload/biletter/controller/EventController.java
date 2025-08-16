@@ -3,6 +3,7 @@ package com.metaload.biletter.controller;
 import com.metaload.biletter.dto.ListEventsResponseItem;
 import com.metaload.biletter.model.Event;
 import com.metaload.biletter.service.EventService;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class EventController {
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
 
-        List<Event> events = eventService.find(query, date, page, pageSize);
+        Page<Event> events = eventService.find(query, date, page, pageSize);
         List<ListEventsResponseItem> response = events.stream()
                 .map(event -> new ListEventsResponseItem(event.getId(), event.getTitle()))
                 .toList();

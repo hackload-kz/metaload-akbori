@@ -17,7 +17,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
 
     Page<Seat> findByEventIdAndStatus(Long eventId, SeatStatus status, Pageable pageable);
 
-    @Query("SELECT s FROM Seat s WHERE s.eventId = :eventId " +
+    @Query("SELECT s FROM Seat s WHERE s.event.id = :eventId " +
             "AND (:row IS NULL OR s.rowNumber = :row) " +
             "AND (:status IS NULL OR s.status = :status)")
     Page<Seat> findByEventIdAndFilters(
