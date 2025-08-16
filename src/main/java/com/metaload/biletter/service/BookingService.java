@@ -6,6 +6,7 @@ import com.metaload.biletter.dto.ListBookingsResponseItem;
 import com.metaload.biletter.dto.ListBookingsResponseItemSeat;
 import com.metaload.biletter.dto.event.CreateOrderResponse;
 import com.metaload.biletter.dto.payment.PaymentInitRequest;
+import com.metaload.biletter.dto.payment.PaymentInitResponse;
 import com.metaload.biletter.model.*;
 import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
 import com.metaload.biletter.repository.BookingRepository;
@@ -96,8 +97,6 @@ public class BookingService {
     public String initiatePayment(Long bookingId) {
         Booking booking = findById(bookingId);
 
-        checkBookingOwner(booking);
-
         // todo обеспечить конкурентный доступ, чтоб не было возможности сделать двойной платеж
 
         if (booking.getStatus() != Booking.BookingStatus.PENDING) {
@@ -108,7 +107,7 @@ public class BookingService {
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
         // todo вычислить total_amount, это сумма цен мест по этому бронированию
         long totalAmount = booking.getTotalAmount().longValue();
-        // сохранить
+        // todo сохранить причем так чтоб эти изменения были видны сразу другим сессиям
         bookingRepository.save(booking);
 
         String email = userService.getCurrentUser().getEmail();
@@ -124,7 +123,7 @@ public class BookingService {
 
             // Создаем платеж в платежном шлюзе
             return paymentGatewayService.createPayment(paymentRequest)
-                    .map(response -> response.getPaymentURL())
+                    .map(PaymentInitResponse::getPaymentURL)
                     .block(); // В реальном приложении лучше использовать async подход
 
         } catch (Exception e) {
@@ -220,13 +219,6 @@ public class BookingService {
 
         item.setSeats(seats);
         return item;
-    }
-
-    private void checkBookingOwner(Booking booking) {
-        User currentUser = userService.getCurrentUser();
-        if (!booking.getUserId().equals(currentUser.getUserId())) {
-            throw new RuntimeException("Cannot initiate payment for someone else's booking.");
-        }
     }
 
     @Transactional
