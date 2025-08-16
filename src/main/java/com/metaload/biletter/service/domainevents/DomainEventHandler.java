@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
 import com.metaload.biletter.model.domainevents.BookingEvents;
 import com.metaload.biletter.model.domainevents.DomainEvent;
+import com.metaload.biletter.service.BookingService;
 import com.metaload.biletter.service.EventService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +20,12 @@ public class DomainEventHandler {
     private static final Logger logger = LoggerFactory.getLogger(DomainEventHandler.class);
 
     private final ObjectMapper objectMapper;
+    private final BookingService bookingService;
 
-    public DomainEventHandler(ObjectMapper objectMapper) {
+    public DomainEventHandler(ObjectMapper objectMapper,
+                              BookingService bookingService) {
         this.objectMapper = objectMapper;
+        this.bookingService = bookingService;
     }
 
     @KafkaListener(topics = "${kafka.topics.booking-events}", groupId = "domain-event-handlers")
@@ -65,9 +69,7 @@ public class DomainEventHandler {
 
             // Выполняем бизнес-логику
             if (EventService.MAIN_EVENT.equals(bookingEvent.getEventId())) {
-                //CreateOrderResponse response = eventProviderService.createOrder().block();
-                //booking.setOrderId(response.getOrderId());
-
+                bookingService.createOrderForBooking(bookingEvent.getBookingId());
             }
 
         } catch (Exception e) {

@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import com.metaload.biletter.dto.CreateBookingRequest;
 import com.metaload.biletter.dto.ListBookingsResponseItem;
 import com.metaload.biletter.dto.ListBookingsResponseItemSeat;
+import com.metaload.biletter.dto.event.CreateOrderResponse;
 import com.metaload.biletter.dto.payment.PaymentInitRequest;
 import com.metaload.biletter.model.*;
 import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
@@ -234,4 +235,14 @@ public class BookingService {
         }
     }
 
+    @Transactional
+    public void createOrderForBooking(Long bookingId) {
+        Booking booking = findById(bookingId);
+        if (booking.getOrderId() == null &&
+                EventService.MAIN_EVENT.equals(booking.getEvent().getId())) {
+            CreateOrderResponse response = eventProviderService.createOrder().block();
+            booking.setOrderId(response.getOrderId());
+            bookingRepository.save(booking);
+        }
+    }
 }
