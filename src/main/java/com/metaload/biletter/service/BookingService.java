@@ -112,17 +112,19 @@ public class BookingService {
         // Обновляем статус на PAYMENT_PENDING
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
         // todo вычислить total_amount, это сумма цен мест по этому бронированию
+        long totalAmount = booking.getTotalAmount().longValue();
         // сохранить
         bookingRepository.save(booking);
 
+        String email = userService.getCurrentUser().getEmail();
         try {
             // Создаем запрос на создание платежа
             PaymentInitRequest paymentRequest = paymentGatewayService.createPaymentRequest(
                     booking.getOrderId(),
-                    booking.getTotalAmount().longValue(),
+                    totalAmount,
                     "KZT",
                     "Оплата бронирования #" + booking.getOrderId(),
-                    "user@example.com" // В реальном приложении берем из контекста пользователя
+                    email
             );
 
             // Создаем платеж в платежном шлюзе
