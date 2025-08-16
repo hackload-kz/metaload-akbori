@@ -33,6 +33,9 @@ public class Booking {
     @Column(name = "payment_id")
     private String paymentId;
 
+    @Column(name = "order_id", unique = true)
+    private String orderId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -112,6 +115,14 @@ public class Booking {
 
     public void setPaymentId(String paymentId) {
         this.paymentId = paymentId;
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
     }
 
     public LocalDateTime getCreatedAt() {

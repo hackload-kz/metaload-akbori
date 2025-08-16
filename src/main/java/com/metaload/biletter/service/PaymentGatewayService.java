@@ -4,6 +4,7 @@ import com.metaload.biletter.config.ExternalServiceConfig;
 import com.metaload.biletter.dto.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -20,6 +21,12 @@ public class PaymentGatewayService {
 
     private final WebClient webClient;
     private final ExternalServiceConfig config;
+
+    @Value("${server.servlet.context-path:/api}")
+    private String contextPath;
+
+    @Value("${server.port:8081}")
+    private String serverPort;
 
     public PaymentGatewayService(WebClient.Builder webClientBuilder, ExternalServiceConfig config) {
         this.config = config;
@@ -42,6 +49,30 @@ public class PaymentGatewayService {
                 .bodyToMono(PaymentInitResponse.class)
                 .doOnSuccess(response -> logger.info("Payment created successfully: {}", response.getPaymentId()))
                 .doOnError(error -> logger.error("Failed to create payment: {}", error.getMessage()));
+    }
+
+    /**
+     * Создает PaymentInitRequest с базовыми параметрами
+     */
+    public PaymentInitRequest createPaymentRequest(String orderId, Long amount, String currency, String description,
+            String email) {
+        PaymentInitRequest request = new PaymentInitRequest();
+        request.setTeamSlug(config.getPaymentGateway().getTeamSlug());
+        request.setOrderId(orderId);
+        request.setAmount(amount);
+        request.setCurrency(currency);
+        request.setDescription(description);
+        request.setEmail(email);
+        request.setLanguage("ru");
+        request.setPaymentExpiry(3600); // 1 час
+
+        // Устанавливаем правильные URL для redirect и webhook
+        String baseUrl = "http://localhost:" + serverPort + contextPath;
+        request.setSuccessURL(baseUrl + "/payments/success?orderId=" + orderId);
+        request.setFailURL(baseUrl + "/payments/fail?orderId=" + orderId);
+        request.setNotificationURL(baseUrl + "/payments/notifications");
+
+        return request;
     }
 
     public Mono<PaymentCheckResponse> checkPaymentStatus(String paymentId, String orderId) {

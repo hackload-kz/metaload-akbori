@@ -3,6 +3,7 @@ package com.metaload.biletter.service;
 import com.metaload.biletter.dto.CreateBookingRequest;
 import com.metaload.biletter.dto.ListBookingsResponseItem;
 import com.metaload.biletter.dto.ListBookingsResponseItemSeat;
+import com.metaload.biletter.dto.payment.PaymentInitRequest;
 import com.metaload.biletter.model.Booking;
 import com.metaload.biletter.model.BookingSeat;
 import com.metaload.biletter.model.Event;
@@ -13,6 +14,8 @@ import com.metaload.biletter.repository.SeatRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,28 +26,44 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
-    private final UserService userService;
+    private final PaymentGatewayService paymentGatewayService;
 
     public BookingService(BookingRepository bookingRepository,
             SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository,
-            UserService userService) {
+            PaymentGatewayService paymentGatewayService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
-        this.userService = userService;
+        this.paymentGatewayService = paymentGatewayService;
     }
 
     public Booking createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
         booking.setEventId(request.getEventId());
-        booking.setUserId(userService.getCurrentUser().getUserId());
         booking.setStatus(Booking.BookingStatus.PENDING);
+
+        // Генерируем уникальный orderId
+        String orderId = generateOrderId();
+        booking.setOrderId(orderId);
+
+        // Устанавливаем userId (в реальном приложении берем из контекста безопасности)
+        booking.setUserId(1); // TODO: Заменить на получение из контекста пользователя
 
         return bookingRepository.save(booking);
     }
 
+    /**
+     * Генерирует уникальный orderId для бронирования
+     */
+    private String generateOrderId() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String random = String.valueOf((int) (Math.random() * 1000));
+        return "BK" + timestamp + random;
+    }
+
     public List<ListBookingsResponseItem> getAllBookings() {
-        Integer currentUserId = userService.getCurrentUser().getUserId();
+        // В реальном приложении фильтруем по текущему пользователю
+        Integer currentUserId = 1; // TODO: Заменить на получение из контекста безопасности
         List<Booking> bookings = bookingRepository.findByUserId(currentUserId);
 
         return bookings.stream()
@@ -57,12 +76,33 @@ public class BookingService {
         if (booking.getStatus() != Booking.BookingStatus.PENDING) {
             throw new RuntimeException("Cannot initiate payment for booking with status: " + booking.getStatus());
         }
+
+        // Обновляем статус на PAYMENT_PENDING
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
         bookingRepository.save(booking);
 
-        // Возвращаем URL для оплаты (в реальном приложении это будет URL платежного
-        // шлюза)
-        return "https://payment-gateway.example.com/pay/" + bookingId;
+        try {
+            // Создаем запрос на создание платежа
+            PaymentInitRequest paymentRequest = paymentGatewayService.createPaymentRequest(
+                    booking.getOrderId(),
+                    booking.getTotalAmount() != null ? booking.getTotalAmount().longValue() * 100 : 0L, // Конвертируем
+                                                                                                        // в копейки
+                    booking.getCurrency() != null ? booking.getCurrency() : "RUB",
+                    "Оплата бронирования #" + booking.getOrderId(),
+                    "user@example.com" // В реальном приложении берем из контекста пользователя
+            );
+
+            // Создаем платеж в платежном шлюзе
+            return paymentGatewayService.createPayment(paymentRequest)
+                    .map(response -> response.getPaymentURL())
+                    .block(); // В реальном приложении лучше использовать async подход
+
+        } catch (Exception e) {
+            // В случае ошибки возвращаем бронирование в исходное состояние
+            booking.setStatus(Booking.BookingStatus.PENDING);
+            bookingRepository.save(booking);
+            throw new RuntimeException("Failed to initiate payment: " + e.getMessage(), e);
+        }
     }
 
     public void cancelBooking(Long bookingId) {
@@ -125,6 +165,11 @@ public class BookingService {
     public Booking findById(Long id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+    }
+
+    public Booking findByOrderId(String orderId) {
+        return bookingRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with orderId: " + orderId));
     }
 
     private ListBookingsResponseItem mapToResponseItem(Booking booking) {
