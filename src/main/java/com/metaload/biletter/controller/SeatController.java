@@ -62,4 +62,10 @@ public class SeatController {
             return ResponseEntity.status(HttpStatus.INSUFFICIENT_SPACE_ON_RESOURCE).build();
         }
     }
+
+    @PostMapping("/fill-big-event")
+    public ResponseEntity<Void> fillSeats() {
+        seatService.generateSeatsForSingleEvent(1L);
+        return ResponseEntity.ok().build();
+    }
 }
