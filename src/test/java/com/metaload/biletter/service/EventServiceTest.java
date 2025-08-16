@@ -19,7 +19,7 @@ class EventServiceTest {
     @Test
     public void find() {
         EventService eventService = new EventService(eventRepository);
-        List<Event> t = eventService.find("t", LocalDate.now());
+        List<Event> t = eventService.find("t", LocalDate.now(), 1, 20);
         assertNotNull(t);
     }
 }

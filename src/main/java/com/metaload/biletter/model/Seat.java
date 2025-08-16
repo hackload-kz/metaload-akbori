@@ -1,7 +1,7 @@
 package com.metaload.biletter.model;
 
 import jakarta.persistence.*;
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,6 +23,9 @@ public class Seat {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private SeatStatus status = SeatStatus.FREE;
+
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -100,5 +103,13 @@ public class Seat {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 }

@@ -23,9 +23,11 @@ public class EventController {
     @GetMapping
     public ResponseEntity<List<ListEventsResponseItem>> listEvents(
             @RequestParam(required = false) String query,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
 
-        List<Event> events = eventService.find(query, date);
+        List<Event> events = eventService.find(query, date, page, pageSize);
         List<ListEventsResponseItem> response = events.stream()
                 .map(event -> new ListEventsResponseItem(event.getId(), event.getTitle()))
                 .toList();

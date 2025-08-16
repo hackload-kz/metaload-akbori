@@ -1,6 +1,7 @@
 package com.metaload.biletter.dto;
 
 import com.metaload.biletter.model.Seat.SeatStatus;
+import java.math.BigDecimal;
 
 public class ListSeatsResponseItem {
 
@@ -8,15 +9,17 @@ public class ListSeatsResponseItem {
     private Long row;
     private Long number;
     private SeatStatus status;
+    private BigDecimal price;
 
     public ListSeatsResponseItem() {
     }
 
-    public ListSeatsResponseItem(Long id, Long row, Long number, SeatStatus status) {
+    public ListSeatsResponseItem(Long id, Long row, Long number, SeatStatus status, BigDecimal price) {
         this.id = id;
         this.row = row;
         this.number = number;
         this.status = status;
+        this.price = price;
     }
 
     // Getters and Setters
@@ -50,5 +53,13 @@ public class ListSeatsResponseItem {
 
     public void setStatus(SeatStatus status) {
         this.status = status;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 }

@@ -14,6 +14,7 @@ CREATE TABLE seats (
     row_number INTEGER NOT NULL,
     seat_number INTEGER NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'FREE' CHECK (status IN ('FREE', 'RESERVED', 'SOLD')),
+    price DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(event_id, row_number, seat_number)

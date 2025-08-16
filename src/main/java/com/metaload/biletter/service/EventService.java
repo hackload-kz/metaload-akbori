@@ -19,7 +19,11 @@ public class EventService {
         this.eventRepository = eventRepository;
     }
 
-    public List<Event> find(String query, LocalDate date) {
+    public List<Event> find(String query, LocalDate date, Integer page, Integer pageSize) {
+        // Ограничиваем pageSize максимум 20 согласно API спецификации
+        int maxPageSize = Math.min(pageSize != null ? pageSize : 20, 20);
+        int pageNumber = page != null ? Math.max(page, 1) : 1;
+
         return eventRepository.find(query, date);
     }
 

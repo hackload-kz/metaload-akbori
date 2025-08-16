@@ -34,8 +34,14 @@ public class BookingController {
 
     @PatchMapping("/initiatePayment")
     public ResponseEntity<Void> initiatePayment(@Valid @RequestBody InitiatePaymentRequest request) {
-        bookingService.initiatePayment(request.getBookingId());
-        return ResponseEntity.ok().build();
+        try {
+            String paymentUrl = bookingService.initiatePayment(request.getBookingId());
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", paymentUrl)
+                    .build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
     }
 
     @PatchMapping("/cancel")

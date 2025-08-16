@@ -25,7 +25,7 @@ public class BookingService {
     private final BookingSeatRepository bookingSeatRepository;
 
     public BookingService(BookingRepository bookingRepository,
-                          SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository) {
+            SeatRepository seatRepository, BookingSeatRepository bookingSeatRepository) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
@@ -47,10 +47,17 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
-    public void initiatePayment(Long bookingId) {
+    public String initiatePayment(Long bookingId) {
         Booking booking = findById(bookingId);
+        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
+            throw new RuntimeException("Cannot initiate payment for booking with status: " + booking.getStatus());
+        }
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
         bookingRepository.save(booking);
+
+        // Возвращаем URL для оплаты (в реальном приложении это будет URL платежного
+        // шлюза)
+        return "https://payment-gateway.example.com/pay/" + bookingId;
     }
 
     public void cancelBooking(Long bookingId) {

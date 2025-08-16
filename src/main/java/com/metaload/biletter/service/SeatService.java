@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,7 +53,7 @@ public class SeatService {
         return seatRepository.findByEventIdAndStatus(eventId, SeatStatus.FREE);
     }
 
-    public void createSeatsForEvent(Long eventId, int rows, int seatsPerRow) {
+    public void createSeatsForEvent(Long eventId, int rows, int seatsPerRow, BigDecimal defaultPrice) {
         // Проверяем, что событие существует
         eventService.findById(eventId);
 
@@ -63,6 +64,7 @@ public class SeatService {
                 seat.setRowNumber(row);
                 seat.setSeatNumber(seatNumber);
                 seat.setStatus(SeatStatus.FREE);
+                seat.setPrice(defaultPrice);
 
                 seatRepository.save(seat);
             }
@@ -75,6 +77,7 @@ public class SeatService {
         item.setRow(seat.getRowNumber().longValue());
         item.setNumber(seat.getSeatNumber().longValue());
         item.setStatus(seat.getStatus());
+        item.setPrice(seat.getPrice());
         return item;
     }
 }
