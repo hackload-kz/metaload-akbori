@@ -1,20 +1,17 @@
 # Hackload Ticketing Service Provider
 
-*Последнее обновление: 14 августа 2025 г. в 17:20*
-
 ## Обзор
 
 Hackload Ticketing Service Provider — это REST API сервис для управления заказами билетов и бронированием мест. Сервис предоставляет две основные роли пользователей:
-
 - **Администратор**: Может создавать и управлять местами/сиденьями в заведении
 - **Партнеры**: Могут создавать заказы, выбирать места и управлять бронированием
+
 
 ## Эндпоинты API
 
 ### Эндпоинты партнеров
 
 #### 1. Начать заказ
-
 Создает новый заказ и возвращает ID заказа.
 
 **Эндпоинт:** `POST /api/partners/v1/orders`
@@ -32,7 +29,6 @@ curl -X POST "http://localhost:8080/api/partners/v1/orders"
 ```
 
 #### 2. Получить заказ
-
 Получает детали заказа по ID.
 
 **Эндпоинт:** `GET /api/partners/v1/orders/{id}`
@@ -54,7 +50,6 @@ curl -X GET "http://localhost:8080/api/partners/v1/orders/98c123b9-fc80-4d6b-a3f
 ```
 
 #### 3. Отправить заказ
-
 Отправляет заказ на обработку. После отправки можно только подтвердить или отменить заказ.
 
 **Эндпоинт:** `PATCH /api/partners/v1/orders/{id}/submit`
@@ -67,7 +62,6 @@ curl -X PATCH "http://localhost:8080/api/partners/v1/orders/98c123b9-fc80-4d6b-a
 ```
 
 #### 4. Подтвердить заказ
-
 Подтверждает заказ (терминальный статус - дальнейшие изменения невозможны).
 
 **Эндпоинт:** `PATCH /api/partners/v1/orders/{id}/confirm`
@@ -80,7 +74,6 @@ curl -X PATCH "http://localhost:8080/api/partners/v1/orders/98c123b9-fc80-4d6b-a
 ```
 
 #### 5. Отменить заказ
-
 Отменяет заказ. Подтвержденные заказы не могут быть отменены.
 
 **Эндпоинт:** `PATCH /api/partners/v1/orders/{id}/cancel`
@@ -93,7 +86,6 @@ curl -X PATCH "http://localhost:8080/api/partners/v1/orders/98c123b9-fc80-4d6b-a
 ```
 
 #### 6. Список мест
-
 Получает доступные места с пагинацией.
 
 **Эндпоинт:** `GET /api/partners/v1/places?page={page}&pageSize={pageSize}`
@@ -120,7 +112,6 @@ curl -X GET "http://localhost:8080/api/partners/v1/places?page=1&pageSize=20"
 ```
 
 #### 7. Получить отдельное место
-
 Получает детали конкретного места.
 
 **Эндпоинт:** `GET /api/partners/v1/places/{id}`
@@ -141,7 +132,6 @@ curl -X GET "http://localhost:8080/api/partners/v1/places/1bf2726c-b6b7-459f-be3
 ```
 
 #### 8. Выбрать место
-
 Выбирает/резервирует место для заказа.
 
 **Эндпоинт:** `PATCH /api/partners/v1/places/{id}/select`
@@ -165,7 +155,6 @@ curl -X PATCH "http://localhost:8080/api/partners/v1/places/1bf2726c-b6b7-459f-b
 ```
 
 #### 9. Освободить место
-
 Освобождает выбранное место (работает только с начатыми заказами).
 
 **Эндпоинт:** `PATCH /api/partners/v1/places/{id}/release`
@@ -241,7 +230,6 @@ CANCELLED ← CANCELLED
 ### Ошибки бизнес-логики (409 Conflict)
 
 #### Ошибки, связанные с заказами
-
 - **OrderNotStartedException**: Попытка операций с не начатым заказом
 - **OrderNotSubmittedException**: Попытка подтвердить заказ, который не был отправлен
 - **OrderAlreadyCancelledException**: Попытка операций с отмененным заказом
@@ -249,16 +237,13 @@ CANCELLED ← CANCELLED
 - **NoPlacesAddedException**: Попытка отправить заказ без мест
 
 #### Ошибки, связанные с местами (409 Conflict)
-
 - **PlaceAlreadySelectedException**: Попытка выбрать уже зарезервированное место
 - **PlaceCanNotBeAddedToOrderException**: Место не может быть добавлено к указанному заказу
 
 #### Ошибки, связанные с местами (403 Forbidden)
-
 - **PlaceSelectedForAnotherOrderException**: Попытка освободить место, выбранное для другого заказа
 
 #### Другие ошибки
-
 - **PlaceNotAddedException**: Попытка удалить место, которое не было добавлено к заказу
 
 ### Формат ответа об ошибке
