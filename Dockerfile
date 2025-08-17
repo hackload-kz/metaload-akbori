@@ -47,9 +47,6 @@ EXPOSE 8081
 ENV JAVA_OPTS="-XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
     -XX:+UseG1GC \
-    -XX:+UnlockExperimentalVMOptions \
-    -XX:+UseCGroupMemoryLimitForHeap \
-    -Djava.security.egd=file:/dev/./urandom \
     -Dspring.profiles.active=prod"
 
 # Health check
