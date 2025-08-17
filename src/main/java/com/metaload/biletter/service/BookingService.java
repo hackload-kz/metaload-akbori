@@ -9,15 +9,20 @@ import com.metaload.biletter.dto.payment.PaymentInitRequest;
 import com.metaload.biletter.dto.payment.PaymentInitResponse;
 import com.metaload.biletter.model.*;
 import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
+import com.metaload.biletter.model.domainevents.SeatAddedToBookingEvent;
+import com.metaload.biletter.model.domainevents.SeatRemovedFromBookingEvent;
 import com.metaload.biletter.repository.BookingRepository;
 import com.metaload.biletter.repository.BookingSeatRepository;
 import com.metaload.biletter.repository.SeatRepository;
-import com.metaload.biletter.service.domainevents.DomainEventPublisherService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +37,10 @@ public class BookingService {
     private final UserService userService;
     private final EventService eventService;
     private final EventProviderService eventProviderService;
-    private final DomainEventPublisherService domainEventPublisherService;
+    private final ApplicationEventPublisher applicationEventPublisher;
+
+    @Autowired
+    private BookingService selfProxy;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatRepository seatRepository,
@@ -41,7 +49,7 @@ public class BookingService {
                           UserService userService,
                           EventService eventService,
                           EventProviderService eventProviderService,
-                          DomainEventPublisherService domainEventPublisherService) {
+                          ApplicationEventPublisher applicationEventPublisher) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
@@ -49,7 +57,7 @@ public class BookingService {
         this.userService = userService;
         this.eventService = eventService;
         this.eventProviderService = eventProviderService;
-        this.domainEventPublisherService = domainEventPublisherService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -77,7 +85,7 @@ public class BookingService {
                 savedBooking.getStatus().name(),
                 savedBooking.getCreatedAt()
         );
-        domainEventPublisherService.publishBookingCreated(bookingEvent);
+        applicationEventPublisher.publishEvent(bookingEvent);
 
         return savedBooking;
     }
@@ -138,24 +146,45 @@ public class BookingService {
     public void cancelBooking(Long bookingId) {
         Booking booking = findById(bookingId);
 
-        // Освобождаем все места
+        // Освобождаем все места с обработкой оптимистических блокировок
         List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
         for (BookingSeat bookingSeat : bookingSeats) {
-            Seat seat = bookingSeat.getSeat();
-            seat.setStatus(Seat.SeatStatus.FREE);
-            seatRepository.save(seat);
+            selfProxy.releaseSeatWithOptimisticLocking(bookingSeat.getSeat().getId());
         }
-
-        // Удаляем связи с местами
-        bookingSeatRepository.deleteAll(bookingSeats);
 
         // Отменяем бронирование
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         bookingRepository.save(booking);
     }
 
-    @Transactional
     public void selectSeat(Long bookingId, Long seatId) {
+        int maxRetries = 3;
+        int retryCount = 0;
+
+        while (retryCount < maxRetries) {
+            try {
+                selfProxy.selectSeatWithOptimisticLocking(bookingId, seatId);
+                return;
+            } catch (OptimisticLockingFailureException e) {
+                retryCount++;
+                log.warn("Optimistic locking conflict for seat {} (attempt {}/{})", seatId, retryCount, maxRetries);
+
+                if (retryCount >= maxRetries) {
+                    throw new RuntimeException("Seat is currently being selected by another user. Please try again.");
+                }
+
+                try {
+                    Thread.sleep(50 + (retryCount * 25));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while retrying seat selection");
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public void selectSeatWithOptimisticLocking(Long bookingId, Long seatId) {
         Booking booking = findById(bookingId);
         Seat seat = seatRepository.findById(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
@@ -174,10 +203,49 @@ public class BookingService {
         bookingSeat.setBooking(booking);
         bookingSeat.setSeat(seat);
         bookingSeatRepository.save(bookingSeat);
+
+        // Публикуем локальное Spring событие, которое будет обработано после коммита транзакции
+        SeatAddedToBookingEvent seatEvent = new SeatAddedToBookingEvent(
+                booking.getId(),
+                seat.getId(),
+                booking.getEvent().getId(),
+                booking.getOrderId(),
+                booking.getUserId(),
+                seat.getRowNumber(),
+                seat.getSeatNumber(),
+                LocalDateTime.now()
+        );
+        applicationEventPublisher.publishEvent(seatEvent);
+    }
+
+    public void releaseSeat(Long seatId) {
+        int maxRetries = 3;
+        int retryCount = 0;
+
+        while (retryCount < maxRetries) {
+            try {
+                selfProxy.releaseSeatWithOptimisticLocking(seatId);
+                return;
+            } catch (OptimisticLockingFailureException e) {
+                retryCount++;
+                log.warn("Optimistic locking conflict for releasing seat {} (attempt {}/{})", seatId, retryCount, maxRetries);
+
+                if (retryCount >= maxRetries) {
+                    throw new RuntimeException("Unable to release seat due to concurrent access. Please try again.");
+                }
+
+                try {
+                    Thread.sleep(50 + (retryCount * 25));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while retrying seat release");
+                }
+            }
+        }
     }
 
     @Transactional
-    public void releaseSeat(Long seatId) {
+    public void releaseSeatWithOptimisticLocking(Long seatId) {
         Seat seat = seatRepository.findById(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
 
@@ -185,12 +253,29 @@ public class BookingService {
         List<BookingSeat> bookingSeats = bookingSeatRepository.findBySeatId(seatId);
 
         if (!bookingSeats.isEmpty()) {
+            // Сохраняем информацию о брони до удаления связи
+            BookingSeat bookingSeat = bookingSeats.get(0);
+            Booking booking = bookingSeat.getBooking();
+
             // Удаляем связь
             bookingSeatRepository.deleteAll(bookingSeats);
 
             // Освобождаем место
             seat.setStatus(Seat.SeatStatus.FREE);
             seatRepository.save(seat);
+
+            // Публикуем локальное Spring событие о удалении места из брони
+            SeatRemovedFromBookingEvent seatEvent = new SeatRemovedFromBookingEvent(
+                    booking.getId(),
+                    seat.getId(),
+                    booking.getEvent().getId(),
+                    booking.getOrderId(),
+                    booking.getUserId(),
+                    seat.getRowNumber(),
+                    seat.getSeatNumber(),
+                    LocalDateTime.now()
+            );
+            applicationEventPublisher.publishEvent(seatEvent);
         }
     }
 
