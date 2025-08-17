@@ -1,4 +1,4 @@
-.PHONY: build run test clean dev-deps dev-deps-down build-prod up-prod down-prod restart-prod
+.PHONY: build run test clean dev-deps dev-deps-down build-prod up-prod down-prod restart-prod logs-prod
 
 build: 
 	./mvnw clean package -DskipTests
@@ -31,3 +31,6 @@ down-prod:
 
 restart-prod: 
 	docker compose -f docker-compose-prod.yml restart
+
+logs-prod: 
+	docker compose -f docker-compose-prod.yml logs -f --tail=100
