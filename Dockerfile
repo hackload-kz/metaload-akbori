@@ -1,8 +1,12 @@
-FROM eclipse-temurin:17-jdk-alpine as build
+# Build stage
+FROM eclipse-temurin:17-jdk-alpine AS build
 
 WORKDIR /workspace/app
 
-# Copy maven files
+# Install required packages for build
+RUN apk add --no-cache wget
+
+# Copy maven files first for better layer caching
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
@@ -10,30 +14,39 @@ COPY pom.xml .
 # Make mvnw executable
 RUN chmod +x mvnw
 
-# Download dependencies
+# Download dependencies (cached layer)
 RUN ./mvnw dependency:go-offline -B
 
 # Copy source code
 COPY src src
 
 # Build the application
-RUN ./mvnw package -DskipTests
+RUN ./mvnw clean package -DskipTests -Dmaven.javadoc.skip=true
+
+# Extract layers for better Docker layer caching
+RUN java -Djarmode=layertools -jar target/*.jar extract
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
 
-# Create app user
+# Install required packages
+RUN apk add --no-cache wget curl tzdata \
+    && cp /usr/share/zoneinfo/Asia/Almaty /etc/localtime \
+    && echo "Asia/Almaty" > /etc/timezone \
+    && apk del tzdata
+
+# Create app user for security
 RUN addgroup -g 1001 -S appuser && \
     adduser -u 1001 -S appuser -G appuser
 
 # Set working directory
 WORKDIR /app
 
-# Copy jar from build stage
-COPY --from=build /workspace/app/target/*.jar app.jar
-
-# Change ownership to app user
-RUN chown -R appuser:appuser /app
+# Copy extracted layers from build stage for better caching
+COPY --from=build --chown=appuser:appuser /workspace/app/dependencies/ ./
+COPY --from=build --chown=appuser:appuser /workspace/app/spring-boot-loader/ ./
+COPY --from=build --chown=appuser:appuser /workspace/app/snapshot-dependencies/ ./
+COPY --from=build --chown=appuser:appuser /workspace/app/application/ ./
 
 # Switch to app user
 USER appuser
@@ -41,9 +54,18 @@ USER appuser
 # Expose port
 EXPOSE 8081
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
+# Add JVM options for better performance and monitoring
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UnlockExperimentalVMOptions \
+    -XX:+UseCGroupMemoryLimitForHeap \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dspring.profiles.active=prod"
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8081/api/actuator/health || exit 1
+
+# Run the application using Spring Boot layered jar approach
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.JarLauncher"]

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  biletter-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biletter-app-prod
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      
+      # Database configuration
+      DB_USERNAME: ${DB_USERNAME:-biletter_user}
+      DB_PASSWORD: ${DB_PASSWORD:-biletter_pass}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5432/biletter_db}
+      
+      # Kafka configuration
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      
+      # Redis configuration
+      REDIS_HOST: ${REDIS_HOST:-localhost}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      
+      # Application URLs
+      APP_URL: ${APP_URL:-https://metaload-akbori.hub.hackload.kz/api}
+      HACKLOAD_BASE_URL: ${HACKLOAD_BASE_URL:-https://hub.hackload.kz}
+      
+      # Payment gateway configuration
+      PAYMENT_GATEWAY_URL: ${PAYMENT_GATEWAY_URL:-https://hub.hackload.kz/payment-provider/common/api/v1}
+      PAYMENT_TEAM_SLUG: ${PAYMENT_TEAM_SLUG:-metaload-akbori}
+      PAYMENT_PASSWORD: ${PAYMENT_PASSWORD}
+      
+      # JVM configuration
+      JAVA_OPTS: ${JAVA_OPTS}
+    volumes:
+      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  app_logs:
+    driver: local
