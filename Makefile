@@ -21,13 +21,13 @@ dev-deps-down:
 
 
 build-prod: 
-	docker-compose -f docker-compose-prod.yml build --no-cache
+	docker compose -f docker-compose-prod.yml build --no-cache
 
 up-prod: 
-	docker-compose -f docker-compose-prod.yml up -d
+	docker compose -f docker-compose-prod.yml up -d
 
 down-prod: 
-	docker-compose -f docker-compose-prod.yml down
+	docker compose -f docker-compose-prod.yml down
 
 restart-prod: 
-	docker-compose -f docker-compose-prod.yml restart
+	docker compose -f docker-compose-prod.yml restart
