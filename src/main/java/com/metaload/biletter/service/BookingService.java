@@ -8,6 +8,7 @@ import com.metaload.biletter.dto.event.CreateOrderResponse;
 import com.metaload.biletter.dto.payment.PaymentInitRequest;
 import com.metaload.biletter.dto.payment.PaymentInitResponse;
 import com.metaload.biletter.model.*;
+import com.metaload.biletter.model.domainevents.BookingCancelledEvent;
 import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
 import com.metaload.biletter.model.domainevents.SeatAddedToBookingEvent;
 import com.metaload.biletter.model.domainevents.SeatRemovedFromBookingEvent;
@@ -157,6 +158,9 @@ public class BookingService {
     @Transactional
     public void cancelBooking(Long bookingId) {
         Booking booking = findById(bookingId);
+        
+        // Сохраняем предыдущий статус
+        String previousStatus = booking.getStatus().name();
 
         // Освобождаем все места с пессимистичными блокировками
         List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
@@ -167,6 +171,17 @@ public class BookingService {
         // Отменяем бронирование
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+
+        // Публикуем событие об отмене бронирования
+        BookingCancelledEvent cancelEvent = new BookingCancelledEvent(
+                booking.getId(),
+                booking.getOrderId(),
+                booking.getEvent().getId(),
+                booking.getUserId(),
+                previousStatus,
+                LocalDateTime.now()
+        );
+        applicationEventPublisher.publishEvent(cancelEvent);
     }
 
     @Transactional

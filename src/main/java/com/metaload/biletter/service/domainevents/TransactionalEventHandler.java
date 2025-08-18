@@ -1,8 +1,6 @@
 package com.metaload.biletter.service.domainevents;
 
-import com.metaload.biletter.model.domainevents.BookingCreatedEvent;
-import com.metaload.biletter.model.domainevents.SeatAddedToBookingEvent;
-import com.metaload.biletter.model.domainevents.SeatRemovedFromBookingEvent;
+import com.metaload.biletter.model.domainevents.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -22,24 +20,32 @@ public class TransactionalEventHandler {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(BookingCreatedEvent event) {
-        logger.debug("Publishing BookingCreatedEvent to Kafka after transaction commit for booking {} event {} ",
-                event.getBookingId(),  event.getEventId());
+        logger.debug("Publishing {} event to Kafka after transaction commit for booking {} event {} ",
+                BookingEvents.BOOKING_CREATED, event.getBookingId(), event.getEventId());
 
         domainEventPublisherService.publishBookingCreated(event);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleBookingCancelledEvent(BookingCancelledEvent event) {
+        logger.debug("Publishing {} event to Kafka after transaction commit for booking {} event {}",
+                BookingEvents.BOOKING_CANCELLED, event.getBookingId(), event.getEventId());
+
+        domainEventPublisherService.publishBookingCancelled(event);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleSeatAddedToBookingEvent(SeatAddedToBookingEvent event) {
-        logger.info("Publishing SeatAddedToBookingEvent to Kafka after transaction commit for booking {} seat {}",
-                   event.getBookingId(), event.getSeatId());
+        logger.info("Publishing {} event to Kafka after transaction commit for booking {} seat {}",
+                BookingEvents.SEAT_ADDED_TO_BOOKING, event.getBookingId(), event.getSeatId());
 
         domainEventPublisherService.publishSeatAddedToBooking(event);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleSeatRemovedFromBookingEvent(SeatRemovedFromBookingEvent event) {
-        logger.info("Publishing SeatRemovedFromBookingEvent to Kafka after transaction commit for booking {} seat {}",
-                   event.getBookingId(), event.getSeatId());
+        logger.info("Publishing {} event to Kafka after transaction commit for booking {} seat {}",
+                BookingEvents.SEAT_REMOVED_FROM_BOOKING, event.getBookingId(), event.getSeatId());
 
         domainEventPublisherService.publishSeatRemovedFromBooking(event);
     }
