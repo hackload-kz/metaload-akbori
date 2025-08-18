@@ -35,7 +35,7 @@ public class Seat {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Version
+    //@Version
     @Column(name = "version")
     private Long version;
 

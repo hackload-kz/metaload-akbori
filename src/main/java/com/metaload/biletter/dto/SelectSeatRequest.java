@@ -1,13 +1,16 @@
 package com.metaload.biletter.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 
 public class SelectSeatRequest {
 
     @NotNull(message = "Booking ID is required")
+    @JsonProperty("booking_id")
     private Long bookingId;
 
     @NotNull(message = "Seat ID is required")
+    @JsonProperty("seat_id")
     private Long seatId;
 
     public SelectSeatRequest() {

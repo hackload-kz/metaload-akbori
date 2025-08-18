@@ -1,10 +1,12 @@
 package com.metaload.biletter.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 
 public class CancelBookingRequest {
 
     @NotNull(message = "Booking ID is required")
+    @JsonProperty("booking_id")
     private Long bookingId;
 
     public CancelBookingRequest() {

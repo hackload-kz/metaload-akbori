@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -164,10 +163,10 @@ public class BookingService {
     public void cancelBooking(Long bookingId) {
         Booking booking = findById(bookingId);
 
-        // Освобождаем все места с обработкой оптимистических блокировок
+        // Освобождаем все места с пессимистичными блокировками
         List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
         for (BookingSeat bookingSeat : bookingSeats) {
-            selfProxy.releaseSeatWithOptimisticLocking(bookingSeat.getSeat().getId());
+            releaseSeat(bookingSeat.getSeat().getId());
         }
 
         // Отменяем бронирование
@@ -175,36 +174,12 @@ public class BookingService {
         bookingRepository.save(booking);
     }
 
-    public void selectSeat(Long bookingId, Long seatId) {
-        int maxRetries = 3;
-        int retryCount = 0;
-
-        while (retryCount < maxRetries) {
-            try {
-                selfProxy.selectSeatWithOptimisticLocking(bookingId, seatId);
-                return;
-            } catch (OptimisticLockingFailureException e) {
-                retryCount++;
-                log.warn("Optimistic locking conflict for seat {} (attempt {}/{})", seatId, retryCount, maxRetries);
-
-                if (retryCount >= maxRetries) {
-                    throw new RuntimeException("Seat is currently being selected by another user. Please try again.");
-                }
-
-                try {
-                    Thread.sleep(50 + (retryCount * 25));
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted while retrying seat selection");
-                }
-            }
-        }
-    }
-
     @Transactional
-    public void selectSeatWithOptimisticLocking(Long bookingId, Long seatId) {
+    public void selectSeat(Long bookingId, Long seatId) {
         Booking booking = findById(bookingId);
-        Seat seat = seatRepository.findById(seatId)
+
+        // Используем пессимистичную блокировку для места
+        Seat seat = seatRepository.findByIdForUpdate(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
 
         // Проверяем, что место свободно
@@ -236,35 +211,10 @@ public class BookingService {
         applicationEventPublisher.publishEvent(seatEvent);
     }
 
-    public void releaseSeat(Long seatId) {
-        int maxRetries = 3;
-        int retryCount = 0;
-
-        while (retryCount < maxRetries) {
-            try {
-                selfProxy.releaseSeatWithOptimisticLocking(seatId);
-                return;
-            } catch (OptimisticLockingFailureException e) {
-                retryCount++;
-                log.warn("Optimistic locking conflict for releasing seat {} (attempt {}/{})", seatId, retryCount, maxRetries);
-
-                if (retryCount >= maxRetries) {
-                    throw new RuntimeException("Unable to release seat due to concurrent access. Please try again.");
-                }
-
-                try {
-                    Thread.sleep(50 + (retryCount * 25));
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted while retrying seat release");
-                }
-            }
-        }
-    }
-
     @Transactional
-    public void releaseSeatWithOptimisticLocking(Long seatId) {
-        Seat seat = seatRepository.findById(seatId)
+    public void releaseSeat(Long seatId) {
+        // Используем пессимистичную блокировку для места
+        Seat seat = seatRepository.findByIdForUpdate(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
 
         // Находим связь с бронированием
