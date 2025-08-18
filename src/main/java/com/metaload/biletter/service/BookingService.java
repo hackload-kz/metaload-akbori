@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -92,9 +93,7 @@ public class BookingService {
         Integer currentUserId = userService.getCurrentUser().getUserId();
         List<Booking> bookings = bookingRepository.findByUserId(currentUserId);
 
-        return bookings.stream()
-                .map(this::mapToResponseItem)
-                .collect(Collectors.toList());
+        return mapToResponseItems(bookings);
     }
 
     @Transactional
@@ -255,19 +254,35 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Booking not found with orderId: " + orderId));
     }
 
-    private ListBookingsResponseItem mapToResponseItem(Booking booking) {
-        ListBookingsResponseItem item = new ListBookingsResponseItem();
-        item.setId(booking.getId());
-        item.setEventId(booking.getEvent().getId());
-
-        // Получаем места для этого бронирования
-        List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(booking.getId());
-        List<ListBookingsResponseItemSeat> seats = bookingSeats.stream()
-                .map(bs -> new ListBookingsResponseItemSeat(bs.getSeat().getId()))
+    private List<ListBookingsResponseItem> mapToResponseItems(List<Booking> bookings) {
+        List<Long> bookingIds = bookings.stream()
+                .map(Booking::getId)
                 .collect(Collectors.toList());
 
-        item.setSeats(seats);
-        return item;
+        List<BookingSeat> bookingSeatsAll = bookingSeatRepository.findByBookingIdIn(bookingIds);
+
+        Map<Long, List<BookingSeat>> bookingSeatsGroup = bookingSeatsAll.stream()
+                .collect(Collectors.groupingBy(item -> item.getBooking().getId()));
+
+        return bookings.stream()
+                .map(booking -> {
+                    ListBookingsResponseItem item = new ListBookingsResponseItem();
+                    item.setId(booking.getId());
+                    item.setEventId(booking.getEvent().getId());
+
+                    // Получаем места для этого бронирования
+                    List<BookingSeat> bookingSeats = bookingSeatsGroup.get(booking.getId());
+                    if (bookingSeats != null) {
+                        List<ListBookingsResponseItemSeat> seats = bookingSeats.stream()
+                                .map(bs -> new ListBookingsResponseItemSeat(bs.getSeat().getId()))
+                                .collect(Collectors.toList());
+
+                        item.setSeats(seats);
+                    }
+
+                    return item;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional

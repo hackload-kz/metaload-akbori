@@ -1,11 +1,13 @@
 package com.metaload.biletter.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "events")
+@BatchSize(size = 10)
 public class Event {
     @Id
     private Long id;

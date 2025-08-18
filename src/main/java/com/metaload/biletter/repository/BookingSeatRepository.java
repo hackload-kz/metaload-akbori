@@ -14,6 +14,8 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> 
 
     List<BookingSeat> findByBookingId(Long bookingId);
 
+    List<BookingSeat> findByBookingIdIn(List<Long> bookingIds);
+
     @Query("SELECT bs FROM BookingSeat bs WHERE bs.booking.id = :bookingId AND bs.seat.id = :seatId")
     Optional<BookingSeat> findByBookingIdAndSeatId(@Param("bookingId") Long bookingId, @Param("seatId") Long seatId);
 
