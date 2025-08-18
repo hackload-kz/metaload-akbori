@@ -22,6 +22,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -103,41 +104,58 @@ public class BookingService {
 
     @Transactional
     public String initiatePayment(Long bookingId) {
-        Booking booking = findById(bookingId);
-
-        // todo обеспечить конкурентный доступ, чтоб не было возможности сделать двойной платеж
+        // Используем SELECT FOR UPDATE для предотвращения конкурентного доступа
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
 
         if (booking.getStatus() != Booking.BookingStatus.PENDING) {
             throw new RuntimeException("Cannot initiate payment for booking with status: " + booking.getStatus());
         }
 
-        // Обновляем статус на PAYMENT_PENDING
+        // Вычисляем total_amount как сумму цен всех забронированных мест
+        List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
+        if (bookingSeats.isEmpty()) {
+            throw new RuntimeException("Cannot initiate payment for booking without selected seats");
+        }
+
+        // Проверяем, что все места действительно зарезервированы этим бронированием
+        for (BookingSeat bookingSeat : bookingSeats) {
+            if (bookingSeat.getSeat().getStatus() != Seat.SeatStatus.RESERVED) {
+                throw new RuntimeException("Seat " + bookingSeat.getSeat().getId() + " is not in RESERVED status");
+            }
+        }
+
+        BigDecimal calculatedTotalAmount = bookingSeats.stream()
+                .map(bookingSeat -> bookingSeat.getSeat().getPrice())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Обновляем статус на PAYMENT_PENDING и устанавливаем рассчитанную сумму
         booking.setStatus(Booking.BookingStatus.PAYMENT_PENDING);
-        // todo вычислить total_amount, это сумма цен мест по этому бронированию
-        long totalAmount = booking.getTotalAmount().longValue();
-        // todo сохранить причем так чтоб эти изменения были видны сразу другим сессиям
-        bookingRepository.save(booking);
+        booking.setTotalAmount(calculatedTotalAmount);
+        Booking savedBooking = bookingRepository.saveAndFlush(booking);
+        long totalAmountInTiyn = calculatedTotalAmount.multiply(new BigDecimal("100")).longValue();
 
         String email = userService.getCurrentUser().getEmail();
         try {
             // Создаем запрос на создание платежа
             PaymentInitRequest paymentRequest = paymentGatewayService.createPaymentRequest(
-                    booking.getOrderId(),
-                    totalAmount,
+                    savedBooking.getOrderId(),
+                    totalAmountInTiyn,
                     "KZT",
-                    "Оплата бронирования #" + booking.getOrderId(),
+                    "Оплата бронирования #" + savedBooking.getOrderId(),
                     email
             );
 
             // Создаем платеж в платежном шлюзе
             return paymentGatewayService.createPayment(paymentRequest)
                     .map(PaymentInitResponse::getPaymentURL)
-                    .block(); // В реальном приложении лучше использовать async подход
+                    .block();
 
         } catch (Exception e) {
             // В случае ошибки возвращаем бронирование в исходное состояние
-            booking.setStatus(Booking.BookingStatus.PENDING);
-            bookingRepository.save(booking);
+            savedBooking.setStatus(Booking.BookingStatus.PENDING);
+            savedBooking.setTotalAmount(null);
+            bookingRepository.saveAndFlush(savedBooking);
             throw new RuntimeException("Failed to initiate payment: " + e.getMessage(), e);
         }
     }

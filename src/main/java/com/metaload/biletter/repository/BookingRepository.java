@@ -2,9 +2,12 @@ package com.metaload.biletter.repository;
 
 import com.metaload.biletter.model.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,4 +30,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.event.id = :eventId AND b.status IN ('PENDING', 'PAYMENT_PENDING')")
     List<Booking> findActiveBookingsByEventId(@Param("eventId") Long eventId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :id")
+    Optional<Booking> findByIdForUpdate(@Param("id") Long id);
 }
