@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  biletter-app:
+    container_name: biletter-app
+    image: biletter-app
+    build:
+      context: .
+      dockerfile: Dockerfile_arm64
+    ports:
+      - "8081:8081"
+    environment:
+      # Database configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://biletter-postgres:5432/biletter_db
+      # Kafka configuration
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: biletter-kafka:29092
+    networks:
+      - biletter-net
+    depends_on:
+      - postgres
+      - kafka
+    profiles:
+      - app
+
   postgres:
     image: postgres:15
     container_name: biletter-postgres
@@ -12,6 +33,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - biletter-net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U biletter_user -d biletter_db" ]
       interval: 10s
@@ -26,6 +49,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - biletter-net
     healthcheck:
       test: [ "CMD-SHELL", "echo ruok | nc localhost 2181" ]
       interval: 10s
@@ -48,6 +73,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - biletter-net
     healthcheck:
       test: [ "CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list" ]
       interval: 30s
@@ -69,3 +96,7 @@ services:
 
 volumes:
   postgres_data:
+networks:
+  biletter-net:
+    name: biletter-net
+    driver: bridge
