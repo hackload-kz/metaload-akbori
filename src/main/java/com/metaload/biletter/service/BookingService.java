@@ -228,7 +228,7 @@ public class BookingService {
             seat.setStatus(Seat.SeatStatus.FREE);
             seatRepository.save(seat);
 
-            // Публикуем локальное Spring событие о удалении места из брони
+            // Публикуем локальное Spring событие об удалении места из брони
             SeatRemovedFromBookingEvent seatEvent = new SeatRemovedFromBookingEvent(
                     booking.getId(),
                     seat.getId(),

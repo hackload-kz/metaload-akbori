@@ -41,9 +41,6 @@ public class Booking {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<BookingSeat> bookingSeats = new ArrayList<>();
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -132,18 +129,4 @@ public class Booking {
         this.updatedAt = updatedAt;
     }
 
-    public List<BookingSeat> getBookingSeats() {
-        return bookingSeats;
-    }
-
-    public void setBookingSeats(List<BookingSeat> bookingSeats) {
-        this.bookingSeats = bookingSeats;
-    }
-
-    public void addSeat(Seat seat) {
-        BookingSeat bookingSeat = new BookingSeat();
-        bookingSeat.setBooking(this);
-        bookingSeat.setSeat(seat);
-        this.bookingSeats.add(bookingSeat);
-    }
 }
