@@ -1,6 +1,7 @@
 package com.metaload.biletter.model;
 
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -12,9 +13,8 @@ public class Seat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "event_id")
-    private Event event;
+    @Column(name = "event_id", nullable = false)
+    private Long eventId;
 
     @Column(name = "row_number", nullable = false)
     private Integer rowNumber;
@@ -111,12 +111,12 @@ public class Seat {
         this.price = price;
     }
 
-    public Event getEvent() {
-        return event;
+    public Long getEventId() {
+        return eventId;
     }
 
-    public void setEvent(Event event) {
-        this.event = event;
+    public void setEventId(Long event) {
+        this.eventId = event;
     }
 
     public Long getVersion() {

@@ -1,29 +1,21 @@
 package com.metaload.biletter.service;
 
 import com.metaload.biletter.dto.ListSeatsResponseItem;
-import com.metaload.biletter.dto.event.Place;
 import com.metaload.biletter.model.Event;
 import com.metaload.biletter.model.Seat;
 import com.metaload.biletter.model.Seat.SeatStatus;
 import com.metaload.biletter.repository.SeatRepository;
-import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,8 +67,7 @@ public class SeatService {
         for (int row = 1; row <= rows; row++) {
             for (int seatNumber = 1; seatNumber <= seatsPerRow; seatNumber++) {
                 Seat seat = new Seat();
-                Event event = eventService.findById(eventId);
-                seat.setEvent(event);
+                seat.setEventId(eventId);
                 seat.setRowNumber(row);
                 seat.setSeatNumber(seatNumber);
                 seat.setStatus(SeatStatus.FREE);
@@ -98,7 +89,7 @@ public class SeatService {
             for (int seatNum = 1; seatNum <= 1000; seatNum++) {
                 seatIndex++;
                 Seat seat = new Seat();
-                seat.setEvent(event);
+                seat.setEventId(eventId);
                 seat.setRowNumber(row);
                 seat.setSeatNumber(seatNum);
                 seat.setStatus(SeatStatus.FREE);
