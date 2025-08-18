@@ -16,7 +16,6 @@ import com.metaload.biletter.repository.BookingSeatRepository;
 import com.metaload.biletter.repository.SeatRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,9 +37,6 @@ public class BookingService {
     private final EventService eventService;
     private final EventProviderService eventProviderService;
     private final ApplicationEventPublisher applicationEventPublisher;
-
-    @Autowired
-    private BookingService selfProxy;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatRepository seatRepository,
