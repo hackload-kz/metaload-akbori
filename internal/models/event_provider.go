@@ -1,0 +1,35 @@
+package models
+
+import "time"
+
+// CreateOrderResponse представляет ответ на создание заказа
+type CreateOrderResponse struct {
+	OrderID string `json:"orderId"`
+}
+
+// OrderDetails представляет детали заказа
+type OrderDetails struct {
+	ID          string `json:"id"`
+	Status      string `json:"status"`
+	StartedAt   int64  `json:"startedAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
+	PlacesCount int    `json:"placesCount"`
+}
+
+// Place представляет место в событии
+type Place struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Status    string    `json:"status"`
+	Price     int64     `json:"price"`
+	Row       int       `json:"row"`
+	Seat      int       `json:"seat"`
+	Section   string    `json:"section"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// SelectPlaceRequest представляет запрос на выбор места
+type SelectPlaceRequest struct {
+	OrderID string `json:"orderId"`
+}

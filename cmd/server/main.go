@@ -20,10 +20,10 @@ import (
 
 func main() {
 	cfg := config.Load()
-	
+
 	zapLogger := logger.New(cfg.LogLevel)
 	defer zapLogger.Sync()
-	
+
 	db, err := database.New(cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
@@ -31,12 +31,12 @@ func main() {
 	defer db.Close()
 
 	repos := repository.New(db)
-	services := services.New(repos, cfg)
+	services := services.New(repos, cfg, zapLogger)
 	handlers := handlers.New(services, zapLogger)
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
-	
+
 	handlers.RegisterRoutes(router)
 
 	srv := &http.Server{
@@ -56,7 +56,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
