@@ -5,9 +5,9 @@ export const options = {
 
     stages: [
         // Ramp-up to 1000 virtual users over 30 seconds
-        { duration: '30s', target: 100 },
+        { duration: '30s', target: 1000 },
         // Stay at 1000 virtual users for 4 minutes
-        { duration: '4m', target: 100 },
+        { duration: '4m', target: 1000 },
         // Ramp-down to 0 virtual users over 30 seconds
         { duration: '30s', target: 0 },
     ],

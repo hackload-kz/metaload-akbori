@@ -1,24 +1,16 @@
 package models
 
 import (
-	"time"
 	"github.com/shopspring/decimal"
+	"time"
 )
 
 type CreateBookingRequest struct {
-	EventID int64   `json:"event_id" validate:"required"`
-	SeatIDs []int64 `json:"seat_ids" validate:"required,min=1"`
-	UserID  int     `json:"user_id" validate:"required"`
+	EventID int64 `json:"event_id" validate:"required"`
 }
 
 type CreateBookingResponse struct {
-	ID          int64           `json:"id"`
-	EventID     int64           `json:"event_id"`
-	UserID      int             `json:"user_id"`
-	Status      BookingStatus   `json:"status"`
-	TotalAmount decimal.Decimal `json:"total_amount"`
-	OrderID     *string         `json:"order_id"`
-	CreatedAt   time.Time       `json:"created_at"`
+	ID int64 `json:"id"`
 }
 
 type ListEventsResponseItem struct {
@@ -39,14 +31,14 @@ type ListSeatsResponseItem struct {
 }
 
 type ListBookingsResponseItem struct {
-	ID          int64                              `json:"id"`
-	EventTitle  string                             `json:"event_title"`
-	Status      BookingStatus                      `json:"status"`
-	TotalAmount decimal.Decimal                    `json:"total_amount"`
-	PaymentID   *string                            `json:"payment_id"`
-	OrderID     *string                            `json:"order_id"`
-	CreatedAt   time.Time                          `json:"created_at"`
-	Seats       []ListBookingsResponseItemSeat     `json:"seats"`
+	ID          int64                          `json:"id"`
+	EventTitle  string                         `json:"event_title"`
+	Status      BookingStatus                  `json:"status"`
+	TotalAmount decimal.Decimal                `json:"total_amount"`
+	PaymentID   *string                        `json:"payment_id"`
+	OrderID     *string                        `json:"order_id"`
+	CreatedAt   time.Time                      `json:"created_at"`
+	Seats       []ListBookingsResponseItemSeat `json:"seats"`
 }
 
 type ListBookingsResponseItemSeat struct {
@@ -56,21 +48,18 @@ type ListBookingsResponseItemSeat struct {
 }
 
 type SelectSeatRequest struct {
-	SeatID int64 `json:"seat_id" validate:"required"`
-	UserID int   `json:"user_id" validate:"required"`
+	BookingID int64 `json:"booking_id" validate:"required"`
+	SeatID    int64 `json:"seat_id" validate:"required"`
 }
 
 type ReleaseSeatRequest struct {
 	SeatID int64 `json:"seat_id" validate:"required"`
-	UserID int   `json:"user_id" validate:"required"`
 }
 
 type CancelBookingRequest struct {
 	BookingID int64 `json:"booking_id" validate:"required"`
-	UserID    int   `json:"user_id" validate:"required"`
 }
 
 type InitiatePaymentRequest struct {
 	BookingID int64 `json:"booking_id" validate:"required"`
-	UserID    int   `json:"user_id" validate:"required"`
 }

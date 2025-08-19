@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"biletter-service/internal/middleware"
 	"biletter-service/internal/models"
 	"net/http"
 	"strconv"
@@ -10,7 +11,12 @@ import (
 )
 
 func (h *Handlers) ListSeats(c *gin.Context) {
-	eventIDStr := c.Param("event_id")
+	eventIDStr := c.Query("event_id")
+	if eventIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Event ID is required"})
+		return
+	}
+
 	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
@@ -28,35 +34,47 @@ func (h *Handlers) ListSeats(c *gin.Context) {
 }
 
 func (h *Handlers) SelectSeat(c *gin.Context) {
+	currentUser, ok := middleware.GetCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
 	var req models.SelectSeatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.services.Seat.SelectSeat(&req)
+	err := h.services.Booking.SelectSeat(req.BookingID, req.SeatID, currentUser.UserID)
 	if err != nil {
 		h.logger.Error("Failed to select seat", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInsufficientStorage, nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Seat selected successfully"})
+	c.JSON(http.StatusOK, nil)
 }
 
 func (h *Handlers) ReleaseSeat(c *gin.Context) {
+	currentUser, ok := middleware.GetCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
 	var req models.ReleaseSeatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.services.Seat.ReleaseSeat(&req)
+	err := h.services.Booking.ReleaseSeat(req.SeatID, currentUser.UserID)
 	if err != nil {
 		h.logger.Error("Failed to release seat", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInsufficientStorage, nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Seat released successfully"})
+	c.JSON(http.StatusOK, nil)
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"biletter-service/internal/middleware"
 	"biletter-service/internal/services"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -21,28 +22,29 @@ func New(services *services.Services, logger *zap.Logger) *Handlers {
 func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
+		// Публичные эндпойнты (без аутентификации)
 		events := api.Group("/events")
 		{
 			events.GET("", h.ListEvents)
 		}
 
-		seats := api.Group("/seats")
+		// Защищенные эндпойнты (требуют аутентификацию)
+		auth := api.Group("", middleware.BasicAuth(h.services.User))
 		{
-			seats.GET("/:event_id", h.ListSeats)
-			seats.POST("/select", h.SelectSeat)
-			seats.POST("/release", h.ReleaseSeat)
-		}
+			seats := auth.Group("/seats")
+			{
+				seats.GET("", h.ListSeats)
+				seats.PATCH("/select", h.SelectSeat)
+				seats.PATCH("/release", h.ReleaseSeat)
+			}
 
-		bookings := api.Group("/bookings")
-		{
-			bookings.POST("", h.CreateBooking)
-			bookings.GET("/user/:user_id", h.ListBookingsByUser)
-			bookings.POST("/cancel", h.CancelBooking)
-		}
-
-		payments := api.Group("/payments")
-		{
-			payments.POST("/initiate", h.InitiatePayment)
+			bookings := auth.Group("/bookings")
+			{
+				bookings.POST("", h.CreateBooking)
+				bookings.GET("", h.ListBookings)
+				bookings.PATCH("/initiatePayment", h.InitiatePayment)
+				bookings.PATCH("/cancel", h.CancelBooking)
+			}
 		}
 	}
 

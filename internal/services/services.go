@@ -10,6 +10,7 @@ type Services struct {
 	Booking BookingService
 	Seat    SeatService
 	Payment PaymentService
+	User    UserService
 }
 
 func New(repos *repository.Repository, cfg *config.Config) *Services {
@@ -18,5 +19,6 @@ func New(repos *repository.Repository, cfg *config.Config) *Services {
 		Booking: NewBookingService(repos.Booking, repos.Seat, repos.Event),
 		Seat:    NewSeatService(repos.Seat),
 		Payment: NewPaymentService(repos.Booking, cfg.Payment),
+		User:    NewUserService(repos.User),
 	}
 }
