@@ -1,0 +1,26 @@
+port: "8081"
+log_level: "info"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "biletter_user"
+  password: "biletter_pass"
+  dbname: "biletter_db"
+  sslmode: "disable"
+
+kafka:
+  brokers: 
+    - "localhost:9092"
+  topics:
+    booking_events: "booking-events"
+    payment_events: "payment-events"
+    seat_select_events: "seat-selection-events"
+
+external:
+  hackload_base_url: "http://localhost:8080"
+
+payment:
+  gateway_url: "https://hub.hackload.kz/payment-provider/common/api/v1"
+  team_slug: "metaload-akbori"
+  password: "dqzw***9TiN"

@@ -1,26 +1,62 @@
 version: '3.8'
 
 services:
+  # Java version (commented out)
+  # biletter-app-java:
+  #   container_name: biletter-app-java
+  #   image: biletter-app-java
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile_arm64
+  #   mem_limit: 5gb
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     # Database configuration
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://biletter-postgres:5432/biletter_db
+  #     # Kafka configuration
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: biletter-kafka:29092
+  #   networks:
+  #     - biletter-net
+  #   volumes:
+  #     - ./target:/app/shared
+  #   depends_on:
+  #     - postgres
+  #     - kafka
+  #   profiles:
+  #     - app
+
+  # Go version
   biletter-app:
-    container_name: biletter-app
-    image: biletter-app
+    container_name: biletter-app-go
+    image: biletter-app-go
     build:
       context: .
-      dockerfile: Dockerfile_arm64
+      dockerfile: Dockerfile.go
+    mem_limit: 1gb
     ports:
       - "8081:8081"
     environment:
       # Database configuration
-      SPRING_DATASOURCE_URL: jdbc:postgresql://biletter-postgres:5432/biletter_db
-      # Kafka configuration
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: biletter-kafka:29092
+      DB_USERNAME: biletter_user
+      DB_PASSWORD: biletter_pass
+      # Service configuration
+      PORT: "8081"
     networks:
       - biletter-net
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     profiles:
       - app
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   postgres:
     image: postgres:15
