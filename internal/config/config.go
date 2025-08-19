@@ -18,12 +18,13 @@ type Config struct {
 }
 
 type Database struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	DBName   string `mapstructure:"dbname"`
-	SSLMode  string `mapstructure:"sslmode"`
+	Host         string `mapstructure:"host"`
+	Port         int    `mapstructure:"port"`
+	User         string `mapstructure:"user"`
+	Password     string `mapstructure:"password"`
+	DBName       string `mapstructure:"dbname"`
+	SSLMode      string `mapstructure:"sslmode"`
+	MaxOpenConns int    `mapstructure:"max_open_conns"`
 }
 
 type Kafka struct {
@@ -76,6 +77,7 @@ func Load() *Config {
 	viper.SetDefault("database.password", "biletter_pass")
 	viper.SetDefault("database.dbname", "biletter_db")
 	viper.SetDefault("database.sslmode", "disable")
+	viper.SetDefault("database.max_open_conns", 90)
 	viper.SetDefault("kafka.brokers", []string{"biletter-kafka:29092"})
 	viper.SetDefault("external.hackload_base_url", "http://localhost:8080")
 	viper.SetDefault("external_service.hackload.base_url", "http://localhost:8080")
@@ -89,6 +91,7 @@ func Load() *Config {
 	viper.BindEnv("database.host", "DB_HOST")
 	viper.BindEnv("database.user", "DB_USERNAME")
 	viper.BindEnv("database.password", "DB_PASSWORD")
+	viper.BindEnv("database.max_open_conns", "DB_MAX_OPEN_CONNS")
 	viper.BindEnv("payment.password", "PAYMENT_PASSWORD")
 	viper.BindEnv("external.hackload_base_url", "HACKLOAD_BASE_URL")
 	viper.BindEnv("external_service.hackload.base_url", "HACKLOAD_BASE_URL")

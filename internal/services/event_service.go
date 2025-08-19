@@ -29,12 +29,8 @@ func (s *eventService) FindEvents(query *string, date *time.Time, page, pageSize
 	var response []models.ListEventsResponseItem
 	for _, event := range events {
 		response = append(response, models.ListEventsResponseItem{
-			ID:            event.ID,
-			Title:         event.Title,
-			Description:   event.Description,
-			Type:          event.Type,
-			DatetimeStart: event.DatetimeStart,
-			Provider:      event.Provider,
+			ID:    event.ID,
+			Title: event.Title,
 		})
 	}
 

@@ -61,14 +61,14 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 		baseQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	baseQuery += " ORDER BY datetime_start"
+	baseQuery += " ORDER BY id"
 
 	offset := (page - 1) * pageSize
 	baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 	args = append(args, pageSize, offset)
 
-	executor := r.getExecutor()
-	rows, err := executor.Query(baseQuery, args...)
+	//executor := r.getExecutor() // в целях оптимизации убрал вызов через executor
+	rows, err := r.db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query events: %w", err)
 	}

@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/shopspring/decimal"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type CreateBookingRequest struct {
@@ -14,12 +15,8 @@ type CreateBookingResponse struct {
 }
 
 type ListEventsResponseItem struct {
-	ID            int64     `json:"id"`
-	Title         string    `json:"title"`
-	Description   string    `json:"description"`
-	Type          string    `json:"type"`
-	DatetimeStart time.Time `json:"datetime_start"`
-	Provider      string    `json:"provider"`
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
 }
 
 type ListSeatsResponseItem struct {
