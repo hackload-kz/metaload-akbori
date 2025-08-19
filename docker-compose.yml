@@ -32,7 +32,7 @@ services:
     image: biletter-app-go
     build:
       context: .
-      dockerfile: Dockerfile.go
+      dockerfile: Dockerfile_go
     mem_limit: 1gb
     ports:
       - "8081:8081"

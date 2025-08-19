@@ -34,7 +34,7 @@ build-linux:
 
 # Docker commands
 docker-build:
-	docker build -f Dockerfile.go -t biletter-service-go .
+	docker build -f Dockerfile_go -t biletter-service-go .
 
 docker-run:
 	docker run -p 8081:8081 biletter-service-go
