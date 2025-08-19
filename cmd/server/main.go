@@ -34,6 +34,10 @@ func main() {
 	services := services.New(repos, cfg, zapLogger)
 	handlers := handlers.New(services, zapLogger)
 
+	if err := repos.InitializeCache(); err != nil {
+		log.Fatal("Failed to initialize cache:", err)
+	}
+
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 

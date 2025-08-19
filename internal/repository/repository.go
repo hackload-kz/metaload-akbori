@@ -21,3 +21,8 @@ func New(db *sql.DB) *Repository {
 		TxManager: NewTransactionManager(db),
 	}
 }
+
+// InitializeCache предзагружает кэши при старте приложения
+func (r *Repository) InitializeCache() error {
+	return r.User.PreloadCache()
+}

@@ -12,7 +12,6 @@ import (
 type BookingService interface {
 	CreateBooking(req *models.CreateBookingRequest, userID int) (*models.CreateBookingResponse, error)
 	GetBookingsByUser(userID int) ([]models.ListBookingsResponseItem, error)
-	GetAllBookings() ([]models.ListBookingsResponseItem, error)
 	CancelBooking(req *models.CancelBookingRequest, userID int) error
 	SelectSeat(bookingID, seatID int64, userID int) error
 	ReleaseSeat(seatID int64, userID int) error
@@ -70,50 +69,12 @@ func (s *bookingService) GetBookingsByUser(userID int) ([]models.ListBookingsRes
 
 	var response []models.ListBookingsResponseItem
 	for _, booking := range bookings {
-		event, err := s.eventRepo.GetByID(booking.EventID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get event: %w", err)
-		}
+		// TODO: fill booking seats
 
 		item := models.ListBookingsResponseItem{
-			ID:          booking.ID,
-			EventTitle:  event.Title,
-			Status:      booking.Status,
-			TotalAmount: booking.TotalAmount,
-			PaymentID:   booking.PaymentID,
-			OrderID:     booking.OrderID,
-			CreatedAt:   booking.CreatedAt,
-			Seats:       []models.ListBookingsResponseItemSeat{},
-		}
-
-		response = append(response, item)
-	}
-
-	return response, nil
-}
-
-func (s *bookingService) GetAllBookings() ([]models.ListBookingsResponseItem, error) {
-	bookings, err := s.bookingRepo.GetAll()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get bookings: %w", err)
-	}
-
-	var response []models.ListBookingsResponseItem
-	for _, booking := range bookings {
-		event, err := s.eventRepo.GetByID(booking.EventID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get event: %w", err)
-		}
-
-		item := models.ListBookingsResponseItem{
-			ID:          booking.ID,
-			EventTitle:  event.Title,
-			Status:      booking.Status,
-			TotalAmount: booking.TotalAmount,
-			PaymentID:   booking.PaymentID,
-			OrderID:     booking.OrderID,
-			CreatedAt:   booking.CreatedAt,
-			Seats:       []models.ListBookingsResponseItemSeat{},
+			ID:      booking.ID,
+			EventID: booking.EventID,
+			Seats:   []models.ListBookingsResponseItemSeat{},
 		}
 
 		response = append(response, item)

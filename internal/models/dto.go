@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/shopspring/decimal"
 )
 
@@ -28,14 +26,9 @@ type ListSeatsResponseItem struct {
 }
 
 type ListBookingsResponseItem struct {
-	ID          int64                          `json:"id"`
-	EventTitle  string                         `json:"event_title"`
-	Status      BookingStatus                  `json:"status"`
-	TotalAmount decimal.Decimal                `json:"total_amount"`
-	PaymentID   *string                        `json:"payment_id"`
-	OrderID     *string                        `json:"order_id"`
-	CreatedAt   time.Time                      `json:"created_at"`
-	Seats       []ListBookingsResponseItemSeat `json:"seats"`
+	ID      int64                          `json:"id"`
+	EventID int64                          `json:"event_id"`
+	Seats   []ListBookingsResponseItemSeat `json:"seats"`
 }
 
 type ListBookingsResponseItemSeat struct {
