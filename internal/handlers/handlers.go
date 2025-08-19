@@ -28,6 +28,15 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 			events.GET("", h.ListEvents)
 		}
 
+		// Payment endpoints (webhooks and redirects - no auth required)
+		paymentHandler := NewPaymentHandler(h.services.Payment, h.logger)
+		payments := api.Group("/payments")
+		{
+			payments.POST("/notifications", paymentHandler.PaymentNotifications)
+			payments.GET("/success", paymentHandler.PaymentSuccess)
+			payments.GET("/fail", paymentHandler.PaymentFail)
+		}
+
 		// Защищенные эндпойнты (требуют аутентификацию)
 		auth := api.Group("", middleware.BasicAuth(h.services.User))
 		{

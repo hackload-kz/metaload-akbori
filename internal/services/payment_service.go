@@ -6,11 +6,15 @@ import (
 	"biletter-service/internal/repository"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
 type PaymentService interface {
 	InitiatePayment(req *models.InitiatePaymentRequest, userID int) (string, error)
+	ProcessPaymentNotification(payload *models.PaymentNotificationPayload) error
+	NotifyPaymentSuccess(orderID string) error
+	NotifyPaymentFailure(orderID string) error
 }
 
 type paymentService struct {
@@ -86,4 +90,91 @@ func (s *paymentService) InitiatePayment(req *models.InitiatePaymentRequest, use
 	}
 
 	return paymentResponse.PaymentURL, nil
+}
+
+func (s *paymentService) ProcessPaymentNotification(payload *models.PaymentNotificationPayload) error {
+	// Поиск бронирования по paymentId или orderId
+	var booking *models.Booking
+	var err error
+
+	// Сначала пытаемся найти по paymentId (если репозиторий поддерживает)
+	// TODO: Добавить метод GetByPaymentID в BookingRepository
+
+	// Пытаемся найти по orderId из data
+	if payload.Data != nil {
+		if orderIDRaw, exists := payload.Data["orderId"]; exists {
+			orderID := fmt.Sprintf("%v", orderIDRaw)
+			booking, err = s.bookingRepo.GetByOrderID(orderID)
+			if err != nil {
+				return fmt.Errorf("failed to get booking by order ID: %w", err)
+			}
+		}
+	}
+
+	if booking == nil {
+		return fmt.Errorf("no booking found for payment ID: %s", payload.PaymentID)
+	}
+
+	// Обновляем paymentId если его еще нет
+	if booking.PaymentID == nil {
+		booking.PaymentID = &payload.PaymentID
+	}
+
+	// Обрабатываем статус платежа
+	switch strings.ToUpper(payload.Status) {
+	case "CONFIRMED", "COMPLETED":
+		booking.Status = models.BookingStatusConfirmed
+	case "FAILED", "CANCELLED", "REJECTED", "EXPIRED":
+		booking.Status = models.BookingStatusCancelled
+	case "AUTHORIZED":
+		// Платеж авторизован, но еще не подтвержден
+		// Оставляем текущий статус
+	default:
+		// Неизвестный статус, оставляем как есть
+	}
+
+	err = s.bookingRepo.Update(booking)
+	if err != nil {
+		return fmt.Errorf("failed to update booking: %w", err)
+	}
+
+	return nil
+}
+
+func (s *paymentService) NotifyPaymentSuccess(orderID string) error {
+	booking, err := s.bookingRepo.GetByOrderID(orderID)
+	if err != nil {
+		return fmt.Errorf("failed to get booking by order ID: %w", err)
+	}
+
+	if booking == nil {
+		return fmt.Errorf("booking not found for order ID: %s", orderID)
+	}
+
+	booking.Status = models.BookingStatusConfirmed
+	err = s.bookingRepo.Update(booking)
+	if err != nil {
+		return fmt.Errorf("failed to update booking: %w", err)
+	}
+
+	return nil
+}
+
+func (s *paymentService) NotifyPaymentFailure(orderID string) error {
+	booking, err := s.bookingRepo.GetByOrderID(orderID)
+	if err != nil {
+		return fmt.Errorf("failed to get booking by order ID: %w", err)
+	}
+
+	if booking == nil {
+		return fmt.Errorf("booking not found for order ID: %s", orderID)
+	}
+
+	booking.Status = models.BookingStatusCancelled
+	err = s.bookingRepo.Update(booking)
+	if err != nil {
+		return fmt.Errorf("failed to update booking: %w", err)
+	}
+
+	return nil
 }

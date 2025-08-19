@@ -65,6 +65,15 @@ type PaymentConfirmResponse struct {
 	Message   string `json:"message"`
 }
 
+// PaymentNotificationPayload представляет webhook уведомление от платежного шлюза
+type PaymentNotificationPayload struct {
+	PaymentID string                 `json:"paymentId" validate:"required"`
+	Status    string                 `json:"status" validate:"required"`
+	TeamSlug  string                 `json:"teamSlug" validate:"required"`
+	Timestamp string                 `json:"timestamp"`
+	Data      map[string]interface{} `json:"data"`
+}
+
 // PaymentCancelRequest представляет запрос на отмену платежа
 type PaymentCancelRequest struct {
 	TeamSlug  string `json:"teamSlug"`
