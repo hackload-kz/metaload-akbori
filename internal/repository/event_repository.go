@@ -11,14 +11,31 @@ import (
 type EventRepository interface {
 	FindEvents(query *string, date *time.Time, page, pageSize int) ([]models.Event, error)
 	GetByID(id int64) (*models.Event, error)
+	WithTx(tx *sql.Tx) EventRepository
 }
 
 type eventRepository struct {
 	db *sql.DB
+	tx *sql.Tx
 }
 
 func NewEventRepository(db *sql.DB) EventRepository {
 	return &eventRepository{db: db}
+}
+
+func (r *eventRepository) WithTx(tx *sql.Tx) EventRepository {
+	return &eventRepository{db: r.db, tx: tx}
+}
+
+func (r *eventRepository) getExecutor() interface {
+	QueryRow(query string, args ...interface{}) *sql.Row
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
+} {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
 }
 
 func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageSize int) ([]models.Event, error) {
@@ -27,7 +44,7 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 	argIndex := 1
 
 	baseQuery := `SELECT id, title, description, type, datetime_start, provider FROM events`
-	
+
 	if query != nil && *query != "" {
 		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR description ILIKE $%d)", argIndex, argIndex))
 		args = append(args, "%"+*query+"%")
@@ -45,12 +62,13 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 	}
 
 	baseQuery += " ORDER BY datetime_start"
-	
+
 	offset := (page - 1) * pageSize
 	baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 	args = append(args, pageSize, offset)
 
-	rows, err := r.db.Query(baseQuery, args...)
+	executor := r.getExecutor()
+	rows, err := executor.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query events: %w", err)
 	}
@@ -59,7 +77,7 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 	var events []models.Event
 	for rows.Next() {
 		var event models.Event
-		err := rows.Scan(&event.ID, &event.Title, &event.Description, 
+		err := rows.Scan(&event.ID, &event.Title, &event.Description,
 			&event.Type, &event.DatetimeStart, &event.Provider)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan event: %w", err)
@@ -72,11 +90,12 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 
 func (r *eventRepository) GetByID(id int64) (*models.Event, error) {
 	query := `SELECT id, title, description, type, datetime_start, provider FROM events WHERE id = $1`
-	
+
 	var event models.Event
-	err := r.db.QueryRow(query, id).Scan(&event.ID, &event.Title, &event.Description,
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, id).Scan(&event.ID, &event.Title, &event.Description,
 		&event.Type, &event.DatetimeStart, &event.Provider)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

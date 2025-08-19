@@ -4,6 +4,7 @@ import (
 	"biletter-service/internal/models"
 	"biletter-service/internal/repository"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -21,13 +22,15 @@ type bookingService struct {
 	bookingRepo repository.BookingRepository
 	seatRepo    repository.SeatRepository
 	eventRepo   repository.EventRepository
+	txManager   *repository.TransactionManager
 }
 
-func NewBookingService(bookingRepo repository.BookingRepository, seatRepo repository.SeatRepository, eventRepo repository.EventRepository) BookingService {
+func NewBookingService(bookingRepo repository.BookingRepository, seatRepo repository.SeatRepository, eventRepo repository.EventRepository, txManager *repository.TransactionManager) BookingService {
 	return &bookingService{
 		bookingRepo: bookingRepo,
 		seatRepo:    seatRepo,
 		eventRepo:   eventRepo,
+		txManager:   txManager,
 	}
 }
 
@@ -148,37 +151,44 @@ func (s *bookingService) CancelBooking(req *models.CancelBookingRequest, userID 
 }
 
 func (s *bookingService) SelectSeat(bookingID, seatID int64, userID int) error {
-	booking, err := s.bookingRepo.GetByID(bookingID)
-	if err != nil {
-		return fmt.Errorf("failed to get booking: %w", err)
-	}
-	if booking == nil {
-		return fmt.Errorf("booking not found")
-	}
+	return s.txManager.WithTransaction(func(txRepo *repository.TransactionRepository) error {
+		// Используем пессимистичную блокировку для места
+		seat, err := txRepo.Seat.GetByIDForUpdate(seatID)
+		if err != nil {
+			return fmt.Errorf("failed to get seat for update: %w", err)
+		}
+		if seat == nil {
+			return fmt.Errorf("seat not found")
+		}
 
-	// Проверяем, что пользователь является владельцем брони
-	if booking.UserID != userID {
-		return fmt.Errorf("unauthorized: booking belongs to another user")
-	}
+		// Проверяем, что место свободно
+		if seat.Status != models.SeatStatusFree {
+			return fmt.Errorf("seat is not available")
+		}
 
-	seat, err := s.seatRepo.GetByID(seatID)
-	if err != nil {
-		return fmt.Errorf("failed to get seat: %w", err)
-	}
-	if seat == nil {
-		return fmt.Errorf("seat not found")
-	}
+		// Получаем бронь
+		booking, err := txRepo.Booking.GetByID(bookingID)
+		if err != nil {
+			return fmt.Errorf("failed to get booking: %w", err)
+		}
+		if booking == nil {
+			return fmt.Errorf("booking not found")
+		}
 
-	if seat.Status != models.SeatStatusFree {
-		return fmt.Errorf("seat is not available")
-	}
+		// Проверяем, что пользователь является владельцем брони
+		if booking.UserID != userID {
+			return fmt.Errorf("unauthorized: booking belongs to another user")
+		}
 
-	err = s.seatRepo.UpdateStatus(seatID, models.SeatStatusReserved)
-	if err != nil {
-		return fmt.Errorf("failed to reserve seat: %w", err)
-	}
+		// Резервируем место
+		seat.Status = models.SeatStatusReserved
+		err = txRepo.Seat.Update(seat)
+		if err != nil {
+			return fmt.Errorf("failed to reserve seat: %w", err)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (s *bookingService) ReleaseSeat(seatID int64, userID int) error {

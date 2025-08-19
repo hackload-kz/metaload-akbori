@@ -10,18 +10,36 @@ import (
 type BookingRepository interface {
 	Create(booking *models.Booking) (*models.Booking, error)
 	GetByID(id int64) (*models.Booking, error)
+	GetByIDForUpdate(id int64) (*models.Booking, error)
 	Update(booking *models.Booking) error
 	GetByUserID(userID int) ([]models.Booking, error)
 	GetAll() ([]models.Booking, error)
 	GetByOrderID(orderID string) (*models.Booking, error)
+	WithTx(tx *sql.Tx) BookingRepository
 }
 
 type bookingRepository struct {
 	db *sql.DB
+	tx *sql.Tx
 }
 
 func NewBookingRepository(db *sql.DB) BookingRepository {
 	return &bookingRepository{db: db}
+}
+
+func (r *bookingRepository) WithTx(tx *sql.Tx) BookingRepository {
+	return &bookingRepository{db: r.db, tx: tx}
+}
+
+func (r *bookingRepository) getExecutor() interface {
+	QueryRow(query string, args ...interface{}) *sql.Row
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
+} {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
 }
 
 func (r *bookingRepository) Create(booking *models.Booking) (*models.Booking, error) {
@@ -34,7 +52,8 @@ func (r *bookingRepository) Create(booking *models.Booking) (*models.Booking, er
 	booking.CreatedAt = now
 	booking.UpdatedAt = now
 
-	err := r.db.QueryRow(query, booking.EventID, booking.UserID, booking.Status,
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, booking.EventID, booking.UserID, booking.Status,
 		booking.TotalAmount, booking.PaymentID, booking.OrderID, booking.CreatedAt, booking.UpdatedAt).Scan(&booking.ID)
 
 	if err != nil {
@@ -50,7 +69,8 @@ func (r *bookingRepository) GetByID(id int64) (*models.Booking, error) {
 		FROM bookings WHERE id = $1`
 
 	var booking models.Booking
-	err := r.db.QueryRow(query, id).Scan(&booking.ID, &booking.EventID, &booking.UserID,
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, id).Scan(&booking.ID, &booking.EventID, &booking.UserID,
 		&booking.Status, &booking.TotalAmount, &booking.PaymentID, &booking.OrderID,
 		&booking.CreatedAt, &booking.UpdatedAt)
 
@@ -64,6 +84,27 @@ func (r *bookingRepository) GetByID(id int64) (*models.Booking, error) {
 	return &booking, nil
 }
 
+func (r *bookingRepository) GetByIDForUpdate(id int64) (*models.Booking, error) {
+	query := `
+		SELECT id, event_id, user_id, status, total_amount, payment_id, order_id, created_at, updated_at
+		FROM bookings WHERE id = $1 FOR UPDATE`
+
+	var booking models.Booking
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, id).Scan(&booking.ID, &booking.EventID, &booking.UserID,
+		&booking.Status, &booking.TotalAmount, &booking.PaymentID, &booking.OrderID,
+		&booking.CreatedAt, &booking.UpdatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get booking for update: %w", err)
+	}
+
+	return &booking, nil
+}
+
 func (r *bookingRepository) Update(booking *models.Booking) error {
 	query := `
 		UPDATE bookings 
@@ -72,7 +113,8 @@ func (r *bookingRepository) Update(booking *models.Booking) error {
 
 	booking.UpdatedAt = time.Now()
 
-	_, err := r.db.Exec(query, booking.Status, booking.TotalAmount, booking.PaymentID,
+	executor := r.getExecutor()
+	_, err := executor.Exec(query, booking.Status, booking.TotalAmount, booking.PaymentID,
 		booking.OrderID, booking.UpdatedAt, booking.ID)
 
 	if err != nil {
@@ -87,7 +129,8 @@ func (r *bookingRepository) GetByUserID(userID int) ([]models.Booking, error) {
 		SELECT id, event_id, user_id, status, total_amount, payment_id, order_id, created_at, updated_at
 		FROM bookings WHERE user_id = $1 ORDER BY created_at DESC`
 
-	rows, err := r.db.Query(query, userID)
+	executor := r.getExecutor()
+	rows, err := executor.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query bookings by user: %w", err)
 	}
@@ -113,7 +156,8 @@ func (r *bookingRepository) GetAll() ([]models.Booking, error) {
 		SELECT id, event_id, user_id, status, total_amount, payment_id, order_id, created_at, updated_at
 		FROM bookings ORDER BY created_at DESC`
 
-	rows, err := r.db.Query(query)
+	executor := r.getExecutor()
+	rows, err := executor.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query all bookings: %w", err)
 	}
@@ -140,7 +184,8 @@ func (r *bookingRepository) GetByOrderID(orderID string) (*models.Booking, error
 		FROM bookings WHERE order_id = $1`
 
 	var booking models.Booking
-	err := r.db.QueryRow(query, orderID).Scan(&booking.ID, &booking.EventID, &booking.UserID,
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, orderID).Scan(&booking.ID, &booking.EventID, &booking.UserID,
 		&booking.Status, &booking.TotalAmount, &booking.PaymentID, &booking.OrderID,
 		&booking.CreatedAt, &booking.UpdatedAt)
 

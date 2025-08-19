@@ -28,11 +28,11 @@ func New(repos *repository.Repository, cfg *config.Config, logger *zap.Logger) *
 	userService := NewUserService(repos.User)
 
 	// Создаем PaymentService с зависимостями
-	paymentService := NewPaymentService(repos.Booking, cfg.Payment, paymentGateway, userService)
+	paymentService := NewPaymentService(repos.Booking, cfg.Payment, paymentGateway, userService, repos.TxManager)
 
 	return &Services{
 		Event:          NewEventService(repos.Event),
-		Booking:        NewBookingService(repos.Booking, repos.Seat, repos.Event),
+		Booking:        NewBookingService(repos.Booking, repos.Seat, repos.Event, repos.TxManager),
 		Seat:           NewSeatService(repos.Seat),
 		Payment:        paymentService,
 		User:           userService,
