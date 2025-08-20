@@ -38,6 +38,7 @@ services:
       - "8081:8081"
     environment:
       # Database configuration
+      DB_HOST: biletter-postgres
       DB_USERNAME: biletter_user
       DB_PASSWORD: biletter_pass
       # Service configuration
