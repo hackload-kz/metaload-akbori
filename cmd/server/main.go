@@ -8,6 +8,7 @@ import (
 	"biletter-service/pkg/database"
 	"biletter-service/pkg/logger"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
@@ -29,6 +33,10 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 	defer db.Close()
+
+	if err := runMigrations(cfg.Database); err != nil {
+		log.Fatal("Failed to run migrations:", err)
+	}
 
 	repos := repository.New(db)
 	services := services.New(repos, cfg, zapLogger)
@@ -64,4 +72,24 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
+}
+
+func runMigrations(cfg config.Database) error {
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.SSLMode)
+
+	m, err := migrate.New(
+		"file://migrations",
+		databaseURL)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+	defer m.Close()
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to apply migrations: %w", err)
+	}
+
+	log.Println("Migrations applied successfully")
+	return nil
 }
