@@ -1,36 +1,57 @@
-.PHONY: build run test clean dev-deps dev-deps-down build-prod rebuild-prod up-prod down-prod restart-prod logs-prod
+.PHONY: build run test clean docker-build docker-run
 
-build: 
-	./mvnw clean package -DskipTests
+# Go parameters
+GOCMD=go
+GOBUILD=$(GOCMD) build
+GOCLEAN=$(GOCMD) clean
+GOTEST=$(GOCMD) test
+GOGET=$(GOCMD) get
+BINARY_NAME=biletter-service
+BINARY_UNIX=$(BINARY_NAME)_unix
 
-run: 
-	./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+# Build the application
+build:
+	$(GOBUILD) -o $(BINARY_NAME) cmd/server/main.go
 
-test: 
-	./mvnw test
+# Run the application
+run:
+	$(GOBUILD) -o $(BINARY_NAME) cmd/server/main.go
+	./$(BINARY_NAME)
 
-clean: 
-	./mvnw clean
-	docker system prune -f
+# Run tests
+test:
+	$(GOTEST) -v ./...
 
-dev-deps: 
-	docker-compose up -d
+# Clean build files
+clean:
+	$(GOCLEAN)
+	rm -f $(BINARY_NAME)
+	rm -f $(BINARY_UNIX)
 
-dev-deps-down: 
-	docker-compose down
+# Cross compilation
+build-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) cmd/server/main.go
 
+# Docker commands
+docker-build:
+	docker build -f Dockerfile_go -t biletter-service-go .
 
-build-prod: 
-	docker compose -f docker-compose-prod.yml build
+docker-run:
+	docker run -p 8081:8081 biletter-service-go
 
-up-prod: 
-	docker compose -f docker-compose-prod.yml up -d
+# Development
+dev:
+	go run cmd/server/main.go
 
-down-prod: 
-	docker compose -f docker-compose-prod.yml down
+# Install dependencies
+deps:
+	go mod download
+	go mod tidy
 
-restart-prod: 
-	docker compose -f docker-compose-prod.yml restart
+# Format code
+fmt:
+	go fmt ./...
 
-logs-prod: 
-	docker compose -f docker-compose-prod.yml logs -f --tail=100
+# Lint code (requires golangci-lint)
+lint:
+	golangci-lint run

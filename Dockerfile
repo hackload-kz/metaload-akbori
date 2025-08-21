@@ -1,28 +1,29 @@
 # Build stage
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM golang:1.23-alpine AS builder
 
-WORKDIR /workspace/app
+# Set working directory
+WORKDIR /app
 
-# Install Maven and required packages
-RUN apk add --no-cache wget maven
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
 
-# Copy pom.xml first for better layer caching
-COPY pom.xml .
+# Copy go mod files
+COPY go.mod go.sum ./
 
-# Download dependencies (cached layer)
-RUN mvn dependency:go-offline -B
+# Download dependencies
+RUN go mod download
 
 # Copy source code
-COPY src src
+COPY . .
 
 # Build the application
-RUN mvn clean package -DskipTests -Dmaven.javadoc.skip=true
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
 
 # Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+FROM alpine:latest
 
-# Install required packages
-RUN apk add --no-cache wget curl tzdata \
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata \
     && cp /usr/share/zoneinfo/Asia/Almaty /etc/localtime \
     && echo "Asia/Almaty" > /etc/timezone \
     && apk del tzdata
@@ -34,8 +35,14 @@ RUN addgroup -g 1001 -S appuser && \
 # Set working directory
 WORKDIR /app
 
-# Copy jar file from build stage
-COPY --from=build --chown=appuser:appuser /workspace/app/target/*.jar app.jar
+# Copy binary from build stage
+COPY --from=builder /app/main .
+
+# Copy migrations
+COPY --from=builder /app/migrations ./migrations/
+
+# Change ownership
+RUN chown -R appuser:appuser /app
 
 # Switch to app user
 USER appuser
@@ -43,15 +50,9 @@ USER appuser
 # Expose port
 EXPOSE 8081
 
-# Add JVM options for better performance and monitoring
-ENV JAVA_OPTS="-XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:+UseG1GC \
-    -Dspring.profiles.active=prod"
-
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8081/api/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
 
-# Run the application using standard jar execution
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Run the application
+CMD ["./main"]
