@@ -10,6 +10,7 @@ type Config struct {
 	Port            string          `mapstructure:"port"`
 	LogLevel        string          `mapstructure:"log_level"`
 	Database        Database        `mapstructure:"database"`
+	Redis           Redis           `mapstructure:"redis"`
 	Kafka           Kafka           `mapstructure:"kafka"`
 	External        External        `mapstructure:"external"`
 	ExternalService ExternalService `mapstructure:"external_service"`
@@ -25,6 +26,13 @@ type Database struct {
 	DBName       string `mapstructure:"dbname"`
 	SSLMode      string `mapstructure:"sslmode"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
+}
+
+type Redis struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
 }
 
 type Kafka struct {
@@ -78,6 +86,10 @@ func Load() *Config {
 	viper.SetDefault("database.dbname", "biletter_db")
 	viper.SetDefault("database.sslmode", "disable")
 	viper.SetDefault("database.max_open_conns", 90)
+	viper.SetDefault("redis.host", "localhost")
+	viper.SetDefault("redis.port", 6379)
+	viper.SetDefault("redis.password", "")
+	viper.SetDefault("redis.db", 0)
 	viper.SetDefault("kafka.brokers", []string{"biletter-kafka:29092"})
 	viper.SetDefault("external.hackload_base_url", "http://localhost:8080")
 	viper.SetDefault("external_service.hackload.base_url", "http://localhost:8080")
@@ -92,6 +104,10 @@ func Load() *Config {
 	viper.BindEnv("database.user", "DB_USERNAME")
 	viper.BindEnv("database.password", "DB_PASSWORD")
 	viper.BindEnv("database.max_open_conns", "DB_MAX_OPEN_CONNS")
+	viper.BindEnv("redis.host", "REDIS_HOST")
+	viper.BindEnv("redis.port", "REDIS_PORT")
+	viper.BindEnv("redis.password", "REDIS_PASSWORD")
+	viper.BindEnv("redis.db", "REDIS_DB")
 	viper.BindEnv("payment.password", "PAYMENT_PASSWORD")
 	viper.BindEnv("external.hackload_base_url", "HACKLOAD_BASE_URL")
 	viper.BindEnv("external_service.hackload.base_url", "HACKLOAD_BASE_URL")

@@ -41,6 +41,8 @@ services:
       DB_HOST: biletter-postgres
       DB_USERNAME: biletter_user
       DB_PASSWORD: biletter_pass
+      # Redis configuration
+      REDIS_HOST: biletter-redis
       # Service configuration
       PORT: "8081"
     networks:
@@ -74,6 +76,19 @@ services:
       - biletter-net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U biletter_user -d biletter_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: biletter-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - biletter-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

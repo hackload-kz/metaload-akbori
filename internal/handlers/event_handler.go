@@ -51,3 +51,8 @@ func (h *Handlers) ListEvents(c *gin.Context) {
 
 	c.JSON(http.StatusOK, events)
 }
+
+func (h *Handlers) ClearEventsCache(c *gin.Context) {
+	h.services.Event.ClearCache()
+	c.JSON(http.StatusOK, gin.H{"message": "Events cache cleared successfully"})
+}

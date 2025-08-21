@@ -26,6 +26,7 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 		events := api.Group("/events")
 		{
 			events.GET("", h.ListEvents)
+			events.POST("/cache/clear", h.ClearEventsCache)
 		}
 
 		// Payment endpoints (webhooks and redirects - no auth required)
