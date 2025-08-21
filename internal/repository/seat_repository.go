@@ -17,6 +17,7 @@ type SeatRepository interface {
 	ReserveSeats(seatIDs []int64, userID int) error
 	ReleaseSeats(seatIDs []int64) error
 	WithTx(tx *sql.Tx) SeatRepository
+	Save(s models.Seat) error
 }
 
 type seatRepository struct {
@@ -213,5 +214,24 @@ func (r *seatRepository) ReleaseSeats(seatIDs []int64) error {
 		return fmt.Errorf("failed to release seats: %w", err)
 	}
 
+	return nil
+}
+
+func (r *seatRepository) Save(s models.Seat) error {
+	query := `
+		INSERT INTO seats(event_id, row_number, seat_number, place_id, status, price, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id`
+	if time.Time.IsZero(s.CreatedAt) {
+		s.CreatedAt = time.Now()
+	}
+	s.UpdatedAt = time.Now()
+
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, s.EventID, s.RowNumber, s.SeatNumber, s.PlaceId, s.Status, s.Price, s.CreatedAt, s.UpdatedAt).Scan(&s.ID)
+
+	if err != nil {
+		return fmt.Errorf("failed to save seat: %w", err)
+	}
 	return nil
 }

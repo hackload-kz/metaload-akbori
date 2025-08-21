@@ -78,3 +78,9 @@ func (h *Handlers) ReleaseSeat(c *gin.Context) {
 
 	c.JSON(http.StatusOK, nil)
 }
+
+func (h *Handlers) FillSeats(c *gin.Context) {
+	h.services.Seat.FillSeats()
+
+	c.JSON(http.StatusOK, nil)
+}

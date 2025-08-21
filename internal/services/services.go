@@ -42,7 +42,7 @@ func New(repos *repository.Repository, cfg *config.Config, logger *zap.Logger) *
 	return &Services{
 		Event:          NewEventService(repos.Event, redisClient),
 		Booking:        NewBookingService(repos.Booking, repos.Seat, repos.Event, repos.TxManager),
-		Seat:           NewSeatService(repos.Seat),
+		Seat:           NewSeatService(repos.Seat, eventProvider),
 		Payment:        paymentService,
 		User:           userService,
 		EventProvider:  eventProvider,
