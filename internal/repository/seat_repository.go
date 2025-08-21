@@ -8,7 +8,7 @@ import (
 )
 
 type SeatRepository interface {
-	GetByEventID(eventID int64) ([]models.Seat, error)
+	GetByEventID(eventID int64, page int64, pageSize int64) ([]models.Seat, error)
 	GetByID(id int64) (*models.Seat, error)
 	GetByIDForUpdate(id int64) (*models.Seat, error)
 	GetByIDs(ids []int64) ([]models.Seat, error)
@@ -44,13 +44,14 @@ func (r *seatRepository) getExecutor() interface {
 	return r.db
 }
 
-func (r *seatRepository) GetByEventID(eventID int64) ([]models.Seat, error) {
+func (r *seatRepository) GetByEventID(eventID int64, page int64, pageSize int64) ([]models.Seat, error) {
 	query := `
 		SELECT id, event_id, row_number, seat_number, status, price, created_at, updated_at, version
-		FROM seats WHERE event_id = $1 ORDER BY row_number, seat_number`
+		FROM seats WHERE event_id = $1 ORDER BY row_number, seat_number
+		LIMIT $2 OFFSET $3`
 
 	executor := r.getExecutor()
-	rows, err := executor.Query(query, eventID)
+	rows, err := executor.Query(query, eventID, pageSize, (page-1)*pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query seats: %w", err)
 	}
