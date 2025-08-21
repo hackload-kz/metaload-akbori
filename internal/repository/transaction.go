@@ -12,11 +12,12 @@ type Transaction struct {
 
 // TransactionRepository provides repository operations within a transaction
 type TransactionRepository struct {
-	tx      *sql.Tx
-	Event   EventRepository
-	Booking BookingRepository
-	Seat    SeatRepository
-	User    UserRepository
+	tx          *sql.Tx
+	Event       EventRepository
+	Seat        SeatRepository
+	Booking     BookingRepository
+	BookingSeat BookingSeatRepository
+	User        UserRepository
 }
 
 // TransactionFunc is a function that executes within a transaction
@@ -43,11 +44,12 @@ func (tm *TransactionManager) WithTransaction(fn TransactionFunc) error {
 
 	// Create repositories that use the transaction
 	txRepo := &TransactionRepository{
-		tx:      tx,
-		Event:   NewEventRepository(tm.db).WithTx(tx),
-		Booking: NewBookingRepository(tm.db).WithTx(tx),
-		Seat:    NewSeatRepository(tm.db).WithTx(tx),
-		User:    NewUserRepository(tm.db).WithTx(tx),
+		tx:          tx,
+		Event:       NewEventRepository(tm.db).WithTx(tx),
+		Seat:        NewSeatRepository(tm.db).WithTx(tx),
+		Booking:     NewBookingRepository(tm.db).WithTx(tx),
+		BookingSeat: NewBookingSeatRepository(tm.db).WithTx(tx),
+		User:        NewUserRepository(tm.db).WithTx(tx),
 	}
 
 	// Execute the function

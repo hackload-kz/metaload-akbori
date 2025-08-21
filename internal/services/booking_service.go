@@ -18,18 +18,20 @@ type BookingService interface {
 }
 
 type bookingService struct {
-	bookingRepo repository.BookingRepository
-	seatRepo    repository.SeatRepository
-	eventRepo   repository.EventRepository
-	txManager   *repository.TransactionManager
+	bookingRepo     repository.BookingRepository
+	bookingSeatRepo repository.BookingSeatRepository
+	seatRepo        repository.SeatRepository
+	eventRepo       repository.EventRepository
+	txManager       *repository.TransactionManager
 }
 
-func NewBookingService(bookingRepo repository.BookingRepository, seatRepo repository.SeatRepository, eventRepo repository.EventRepository, txManager *repository.TransactionManager) BookingService {
+func NewBookingService(bookingRepo repository.BookingRepository, bookingSeatRepo repository.BookingSeatRepository, seatRepo repository.SeatRepository, eventRepo repository.EventRepository, txManager *repository.TransactionManager) BookingService {
 	return &bookingService{
-		bookingRepo: bookingRepo,
-		seatRepo:    seatRepo,
-		eventRepo:   eventRepo,
-		txManager:   txManager,
+		bookingRepo:     bookingRepo,
+		bookingSeatRepo: bookingSeatRepo,
+		seatRepo:        seatRepo,
+		eventRepo:       eventRepo,
+		txManager:       txManager,
 	}
 }
 
@@ -67,14 +69,31 @@ func (s *bookingService) GetBookingsByUser(userID int) ([]models.ListBookingsRes
 		return nil, fmt.Errorf("failed to get bookings: %w", err)
 	}
 
+	var bookingIDs []int64
+	for _, booking := range bookings {
+		bookingIDs = append(bookingIDs, booking.ID)
+	}
+
+	// Получаем разом места по всем броням
+	bookingSeats, err := s.bookingSeatRepo.GetByBookingIDs(bookingIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get booking seats: %w", err)
+	}
+
 	var response []models.ListBookingsResponseItem
 	for _, booking := range bookings {
-		// TODO: fill booking seats
+		// Заполняем места
+		seats := []models.ListBookingsResponseItemSeat{}
+		for _, bookingSeat := range bookingSeats {
+			if bookingSeat.BookingID == booking.ID {
+				seats = append(seats, models.ListBookingsResponseItemSeat{SeatID: bookingSeat.SeatID})
+			}
+		}
 
 		item := models.ListBookingsResponseItem{
 			ID:      booking.ID,
 			EventID: booking.EventID,
-			Seats:   []models.ListBookingsResponseItemSeat{},
+			Seats:   seats,
 		}
 
 		response = append(response, item)
@@ -148,31 +167,47 @@ func (s *bookingService) SelectSeat(bookingID, seatID int64, userID int) error {
 			return fmt.Errorf("failed to reserve seat: %w", err)
 		}
 
+		// Создаем связь брони с местом
+		bookingSeat := &models.BookingSeat{BookingID: bookingID, SeatID: seatID}
+		_, err = txRepo.BookingSeat.Create(bookingSeat)
+		if err != nil {
+			return fmt.Errorf("failed to create booking seat: %w", err)
+		}
+
 		return nil
 	})
 }
 
 func (s *bookingService) ReleaseSeat(seatID int64, userID int) error {
-	seat, err := s.seatRepo.GetByID(seatID)
-	if err != nil {
-		return fmt.Errorf("failed to get seat: %w", err)
-	}
-	if seat == nil {
-		return fmt.Errorf("seat not found")
-	}
+	return s.txManager.WithTransaction(func(txRepo *repository.TransactionRepository) error {
+		seat, err := txRepo.Seat.GetByIDForUpdate(seatID)
+		if err != nil {
+			return fmt.Errorf("failed to get seat: %w", err)
+		}
+		if seat == nil {
+			return fmt.Errorf("seat not found")
+		}
+		if seat.Status != models.SeatStatusReserved {
+			return fmt.Errorf("seat is not reserved")
+		}
 
-	if seat.Status != models.SeatStatusReserved {
-		return fmt.Errorf("seat is not reserved")
-	}
+		err = txRepo.Seat.UpdateStatus(seatID, models.SeatStatusFree)
+		if err != nil {
+			return fmt.Errorf("failed to release seat: %w", err)
+		}
 
-	// Находим бронь, к которой привязано место
-	// В Go версии нет BookingSeat таблицы, поэтому пока просто освобождаем место
-	// TODO: Добавить проверку владельца места через BookingSeat таблицу
+		// Удаляем связь места с бронью
+		bookingSeats, err := txRepo.BookingSeat.GetBySeatID(seatID)
+		if err != nil {
+			return fmt.Errorf("failed to get booking seats: %w", err)
+		}
+		for _, bookingSeat := range bookingSeats {
+			err = txRepo.BookingSeat.Delete(bookingSeat.ID)
+			if err != nil {
+				return fmt.Errorf("failed to delete booking seat: %w", err)
+			}
+		}
 
-	err = s.seatRepo.UpdateStatus(seatID, models.SeatStatusFree)
-	if err != nil {
-		return fmt.Errorf("failed to release seat: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }

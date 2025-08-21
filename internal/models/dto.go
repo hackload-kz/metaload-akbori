@@ -32,9 +32,7 @@ type ListBookingsResponseItem struct {
 }
 
 type ListBookingsResponseItemSeat struct {
-	SeatID     int64 `json:"seat_id"`
-	RowNumber  int   `json:"row_number"`
-	SeatNumber int   `json:"seat_number"`
+	SeatID int64 `json:"seat_id"`
 }
 
 type SelectSeatRequest struct {

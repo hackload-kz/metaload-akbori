@@ -22,7 +22,8 @@ func New(cfg config.Database) (*sql.DB, error) {
 	}
 
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
-	db.SetMaxIdleConns(20)
-
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(0) // maximum amount of time a connection may be reused
+	db.SetConnMaxIdleTime(0) // maximum amount of time a connection may be idle before being closed
 	return db, nil
 }

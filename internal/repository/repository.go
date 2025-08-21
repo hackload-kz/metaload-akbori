@@ -5,20 +5,22 @@ import (
 )
 
 type Repository struct {
-	Event     EventRepository
-	Booking   BookingRepository
-	Seat      SeatRepository
-	User      UserRepository
-	TxManager *TransactionManager
+	Event       EventRepository
+	Seat        SeatRepository
+	Booking     BookingRepository
+	BookingSeat BookingSeatRepository
+	User        UserRepository
+	TxManager   *TransactionManager
 }
 
 func New(db *sql.DB) *Repository {
 	return &Repository{
-		Event:     NewEventRepository(db),
-		Booking:   NewBookingRepository(db),
-		Seat:      NewSeatRepository(db),
-		User:      NewUserRepository(db),
-		TxManager: NewTransactionManager(db),
+		Event:       NewEventRepository(db),
+		Seat:        NewSeatRepository(db),
+		Booking:     NewBookingRepository(db),
+		BookingSeat: NewBookingSeatRepository(db),
+		User:        NewUserRepository(db),
+		TxManager:   NewTransactionManager(db),
 	}
 }
 
