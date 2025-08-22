@@ -41,9 +41,7 @@ type Kafka struct {
 }
 
 type Topics struct {
-	BookingEvents    string `mapstructure:"booking_events"`
-	PaymentEvents    string `mapstructure:"payment_events"`
-	SeatSelectEvents string `mapstructure:"seat_select_events"`
+	BookingEvents string `mapstructure:"booking_events"`
 }
 
 type External struct {
@@ -91,6 +89,7 @@ func Load() *Config {
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
 	viper.SetDefault("kafka.brokers", []string{"biletter-kafka:29092"})
+	viper.SetDefault("kafka.topics.booking_events", "booking_events")
 	viper.SetDefault("external.hackload_base_url", "http://localhost:8080")
 	viper.SetDefault("external_service.hackload.base_url", "http://localhost:8080")
 	viper.SetDefault("external_service.hackload.api_version", "v1")
@@ -108,6 +107,8 @@ func Load() *Config {
 	viper.BindEnv("redis.port", "REDIS_PORT")
 	viper.BindEnv("redis.password", "REDIS_PASSWORD")
 	viper.BindEnv("redis.db", "REDIS_DB")
+	viper.BindEnv("kafka.brokers", "KAFKA_BROKERS")
+	viper.BindEnv("kafka.topics.booking_events", "KAFKA_TOPICS_BOOKING_EVENTS")
 	viper.BindEnv("payment.password", "PAYMENT_PASSWORD")
 	viper.BindEnv("external.hackload_base_url", "HACKLOAD_BASE_URL")
 	viper.BindEnv("external_service.hackload.base_url", "HACKLOAD_BASE_URL")

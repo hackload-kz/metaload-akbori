@@ -5,6 +5,7 @@ import (
 	"biletter-service/internal/handlers"
 	"biletter-service/internal/repository"
 	"biletter-service/internal/services"
+	"biletter-service/pkg/broker"
 	"biletter-service/pkg/cache"
 	"biletter-service/pkg/database"
 	"biletter-service/pkg/logger"
@@ -42,8 +43,19 @@ func main() {
 	// Создаем cache клиент
 	cacheClient := cache.NewRedisCache(cfg.Redis)
 
+	// Создаем event publisher
+	var eventPublisher broker.Publisher
+	if len(cfg.Kafka.Brokers) > 0 {
+		if publisher, err := broker.NewKafkaPublisher(cfg.Kafka); err == nil {
+			eventPublisher = publisher
+			defer eventPublisher.Close()
+		} else {
+			log.Printf("Failed to create Kafka publisher: %v", err)
+		}
+	}
+
 	repos := repository.New(db)
-	services := services.New(repos, cacheClient, cfg, zapLogger)
+	services := services.New(repos, cacheClient, eventPublisher, cfg, zapLogger)
 	handlers := handlers.New(services, zapLogger)
 
 	if err := repos.InitializeCache(); err != nil {

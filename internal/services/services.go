@@ -3,6 +3,7 @@ package services
 import (
 	"biletter-service/internal/config"
 	"biletter-service/internal/repository"
+	"biletter-service/pkg/broker"
 	"biletter-service/pkg/cache"
 
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ type Services struct {
 	PaymentGateway PaymentGatewayService
 }
 
-func New(repos *repository.Repository, cacheClient cache.Cache, cfg *config.Config, logger *zap.Logger) *Services {
+func New(repos *repository.Repository, cacheClient cache.Cache, eventPublisher broker.Publisher, cfg *config.Config, logger *zap.Logger) *Services {
 	// Создаем EventProvider сервис
 	eventProvider := NewEventProviderService(cfg.ExternalService, logger)
 
@@ -33,7 +34,7 @@ func New(repos *repository.Repository, cacheClient cache.Cache, cfg *config.Conf
 
 	return &Services{
 		Event:          NewEventService(repos.Event, cacheClient),
-		Booking:        NewBookingService(repos.Booking, repos.BookingSeat, repos.Seat, repos.Event, repos.TxManager),
+		Booking:        NewBookingService(repos.Booking, repos.BookingSeat, repos.Seat, repos.Event, repos.TxManager, eventPublisher, cfg.Kafka.Topics.BookingEvents),
 		Seat:           NewSeatService(repos.Seat),
 		Payment:        paymentService,
 		User:           userService,
