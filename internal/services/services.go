@@ -3,9 +3,8 @@ package services
 import (
 	"biletter-service/internal/config"
 	"biletter-service/internal/repository"
-	"fmt"
+	"biletter-service/pkg/cache"
 
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -19,14 +18,7 @@ type Services struct {
 	PaymentGateway PaymentGatewayService
 }
 
-func New(repos *repository.Repository, cfg *config.Config, logger *zap.Logger) *Services {
-	// Создаем Redis клиент
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	})
-
+func New(repos *repository.Repository, cacheClient cache.Cache, cfg *config.Config, logger *zap.Logger) *Services {
 	// Создаем EventProvider сервис
 	eventProvider := NewEventProviderService(cfg.ExternalService, logger)
 
@@ -40,7 +32,7 @@ func New(repos *repository.Repository, cfg *config.Config, logger *zap.Logger) *
 	paymentService := NewPaymentService(repos.Booking, cfg.Payment, paymentGateway, userService, repos.TxManager)
 
 	return &Services{
-		Event:          NewEventService(repos.Event, redisClient),
+		Event:          NewEventService(repos.Event, cacheClient),
 		Booking:        NewBookingService(repos.Booking, repos.BookingSeat, repos.Seat, repos.Event, repos.TxManager),
 		Seat:           NewSeatService(repos.Seat),
 		Payment:        paymentService,

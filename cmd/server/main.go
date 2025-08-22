@@ -5,6 +5,7 @@ import (
 	"biletter-service/internal/handlers"
 	"biletter-service/internal/repository"
 	"biletter-service/internal/services"
+	"biletter-service/pkg/cache"
 	"biletter-service/pkg/database"
 	"biletter-service/pkg/logger"
 	"context"
@@ -38,8 +39,11 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
+	// Создаем cache клиент
+	cacheClient := cache.NewRedisCache(cfg.Redis)
+
 	repos := repository.New(db)
-	services := services.New(repos, cfg, zapLogger)
+	services := services.New(repos, cacheClient, cfg, zapLogger)
 	handlers := handlers.New(services, zapLogger)
 
 	if err := repos.InitializeCache(); err != nil {

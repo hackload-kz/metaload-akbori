@@ -3,13 +3,12 @@ package services
 import (
 	"biletter-service/internal/models"
 	"biletter-service/internal/repository"
+	"biletter-service/pkg/cache"
 	"context"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
 
 type EventService interface {
@@ -19,14 +18,14 @@ type EventService interface {
 
 type eventService struct {
 	eventRepo   repository.EventRepository
-	redisClient *redis.Client
+	cacheClient cache.Cache
 	cacheTTL    time.Duration
 }
 
-func NewEventService(eventRepo repository.EventRepository, redisClient *redis.Client) EventService {
+func NewEventService(eventRepo repository.EventRepository, cacheClient cache.Cache) EventService {
 	return &eventService{
 		eventRepo:   eventRepo,
-		redisClient: redisClient,
+		cacheClient: cacheClient,
 		cacheTTL:    10 * time.Minute,
 	}
 }
@@ -48,7 +47,7 @@ func (s *eventService) generateCacheKey(query *string, date *time.Time, page, pa
 }
 
 func (s *eventService) getCachedResult(ctx context.Context, cacheKey string) ([]models.ListEventsResponseItem, bool) {
-	val, err := s.redisClient.Get(ctx, cacheKey).Result()
+	val, err := s.cacheClient.Get(ctx, cacheKey)
 	if err != nil {
 		return nil, false
 	}
@@ -67,7 +66,7 @@ func (s *eventService) setCachedResult(ctx context.Context, cacheKey string, dat
 		return
 	}
 
-	s.redisClient.Set(ctx, cacheKey, jsonData, s.cacheTTL)
+	s.cacheClient.Set(ctx, cacheKey, jsonData, s.cacheTTL)
 }
 
 func (s *eventService) FindEvents(query *string, date *time.Time, page, pageSize int) ([]models.ListEventsResponseItem, error) {
@@ -99,8 +98,5 @@ func (s *eventService) ClearCache() {
 	ctx := context.Background()
 	pattern := "events:*"
 
-	iter := s.redisClient.Scan(ctx, 0, pattern, 0).Iterator()
-	for iter.Next(ctx) {
-		s.redisClient.Del(ctx, iter.Val())
-	}
+	s.cacheClient.DelByPattern(ctx, pattern)
 }
