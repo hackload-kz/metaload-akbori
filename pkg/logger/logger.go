@@ -23,7 +23,7 @@ func New(level string) *zap.Logger {
 	config := zap.Config{
 		Level:       zap.NewAtomicLevelAt(zapLevel),
 		Development: false,
-		Sampling:    &zap.SamplingConfig{
+		Sampling: &zap.SamplingConfig{
 			Initial:    100,
 			Thereafter: 100,
 		},
