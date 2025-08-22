@@ -5,12 +5,13 @@ import (
 	"biletter-service/internal/repository"
 	"context"
 	"fmt"
-	"github.com/shopspring/decimal"
 	"log"
+
+	"github.com/shopspring/decimal"
 )
 
 type SeatService interface {
-	GetSeatsByEvent(eventID int64, page int64, pageSize int64) ([]models.ListSeatsResponseItem, error)
+	GetSeatsByEvent(eventID int64, status string, row int64, page int64, pageSize int64) ([]models.ListSeatsResponseItem, error)
 	SelectSeat(req *models.SelectSeatRequest) error
 	ReleaseSeat(req *models.ReleaseSeatRequest) error
 	FillSeats()
@@ -28,8 +29,8 @@ func NewSeatService(seatRepo repository.SeatRepository, eventProvider EventProvi
 	}
 }
 
-func (s *seatService) GetSeatsByEvent(eventID int64, page int64, pageSize int64) ([]models.ListSeatsResponseItem, error) {
-	seats, err := s.seatRepo.GetByEventID(eventID, page, pageSize)
+func (s *seatService) GetSeatsByEvent(eventID int64, status string, row int64, page int64, pageSize int64) ([]models.ListSeatsResponseItem, error) {
+	seats, err := s.seatRepo.GetByEventID(eventID, status, row, page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get seats: %w", err)
 	}

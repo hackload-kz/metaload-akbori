@@ -8,7 +8,7 @@ import (
 )
 
 type SeatRepository interface {
-	GetByEventID(eventID int64, page int64, pageSize int64) ([]models.Seat, error)
+	GetByEventID(eventID int64, status string, row int64, page int64, pageSize int64) ([]models.Seat, error)
 	GetByID(id int64) (*models.Seat, error)
 	GetByIDForUpdate(id int64) (*models.Seat, error)
 	GetByIDs(ids []int64) ([]models.Seat, error)
@@ -44,14 +44,32 @@ func (r *seatRepository) getExecutor() interface {
 	return r.db
 }
 
-func (r *seatRepository) GetByEventID(eventID int64, page int64, pageSize int64) ([]models.Seat, error) {
+func (r *seatRepository) GetByEventID(eventID int64, status string, row int64, page int64, pageSize int64) ([]models.Seat, error) {
 	query := `
 		SELECT id, event_id, row_number, seat_number, status, price, created_at, updated_at, version
-		FROM seats WHERE event_id = $1 ORDER BY row_number, seat_number
-		LIMIT $2 OFFSET $3`
+		FROM seats
+		WHERE event_id = $1`
+
+	args := []interface{}{eventID}
+	argPos := 2
+
+	if status != "" {
+		query += fmt.Sprintf(" AND status = $%d", argPos)
+		args = append(args, status)
+		argPos++
+	}
+
+	if row > 0 {
+		query += fmt.Sprintf(" AND row_number = $%d", argPos)
+		args = append(args, row)
+		argPos++
+	}
+
+	query += fmt.Sprintf(" ORDER BY row_number, seat_number LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	args = append(args, pageSize, (page-1)*pageSize)
 
 	executor := r.getExecutor()
-	rows, err := executor.Query(query, eventID, pageSize, (page-1)*pageSize)
+	rows, err := executor.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query seats: %w", err)
 	}
