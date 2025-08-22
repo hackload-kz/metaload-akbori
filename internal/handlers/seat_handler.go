@@ -12,9 +12,19 @@ import (
 
 func (h *Handlers) ListSeats(c *gin.Context) {
 	eventIDStr := c.Query("event_id")
+	pageStr := c.Query("page")
+	pageSizeStr := c.Query("page_size")
+	rowStr := c.Query("row")
+	status := c.Query("status")
 	if eventIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Event ID is required"})
 		return
+	}
+	if pageStr == "" {
+		pageStr = "1"
+	}
+	if pageSizeStr == "" {
+		pageSizeStr = "20"
 	}
 
 	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
@@ -22,8 +32,20 @@ func (h *Handlers) ListSeats(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
+	page, err := strconv.ParseInt(pageStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+	}
+	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page size"})
+	}
+	if status != "" && !isValidStatus(status) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status code"})
+	}
+	row, err := strconv.ParseInt(rowStr, 10, 64)
 
-	seats, err := h.services.Seat.GetSeatsByEvent(eventID)
+	seats, err := h.services.Seat.GetSeatsByEvent(eventID, status, row, page, pageSize)
 	if err != nil {
 		h.logger.Error("Failed to get seats", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get seats"})
@@ -31,6 +53,14 @@ func (h *Handlers) ListSeats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, seats)
+}
+
+func isValidStatus(status string) bool {
+	switch models.SeatStatus(status) {
+	case models.SeatStatusFree, models.SeatStatusReserved, models.SeatStatusSold:
+		return true
+	}
+	return false
 }
 
 func (h *Handlers) SelectSeat(c *gin.Context) {
@@ -75,6 +105,12 @@ func (h *Handlers) ReleaseSeat(c *gin.Context) {
 		c.JSON(http.StatusInsufficientStorage, nil)
 		return
 	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *Handlers) FillSeats(c *gin.Context) {
+	h.services.Seat.FillSeats()
 
 	c.JSON(http.StatusOK, nil)
 }

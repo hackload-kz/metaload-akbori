@@ -47,6 +47,7 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 				seats.GET("", h.ListSeats)
 				seats.PATCH("/select", h.SelectSeat)
 				seats.PATCH("/release", h.ReleaseSeat)
+				seats.POST("/fill-big-event", h.FillSeats)
 			}
 
 			bookings := auth.Group("/bookings")

@@ -18,7 +18,11 @@ kafka:
     seat_select_events: "seat-selection-events"
 
 external:
-  hackload_base_url: "http://localhost:8080"
+  hackload_base_url: "https://hub.hackload.kz/event/metaload-akbori/event-provider"
+
+external_service:
+  hackload:
+    base_url: https://hub.hackload.kz/event/metaload-akbori/event-provider
 
 payment:
   gateway_url: "https://hub.hackload.kz/payment-provider/common/api/v1"

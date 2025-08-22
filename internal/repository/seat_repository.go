@@ -8,7 +8,7 @@ import (
 )
 
 type SeatRepository interface {
-	GetByEventID(eventID int64) ([]models.Seat, error)
+	GetByEventID(eventID int64, status string, row int64, page int64, pageSize int64) ([]models.Seat, error)
 	GetByID(id int64) (*models.Seat, error)
 	GetByIDForUpdate(id int64) (*models.Seat, error)
 	GetByIDs(ids []int64) ([]models.Seat, error)
@@ -17,6 +17,7 @@ type SeatRepository interface {
 	ReserveSeats(seatIDs []int64, userID int) error
 	ReleaseSeats(seatIDs []int64) error
 	WithTx(tx *sql.Tx) SeatRepository
+	Save(s models.Seat) error
 }
 
 type seatRepository struct {
@@ -43,13 +44,32 @@ func (r *seatRepository) getExecutor() interface {
 	return r.db
 }
 
-func (r *seatRepository) GetByEventID(eventID int64) ([]models.Seat, error) {
+func (r *seatRepository) GetByEventID(eventID int64, status string, row int64, page int64, pageSize int64) ([]models.Seat, error) {
 	query := `
 		SELECT id, event_id, row_number, seat_number, status, price, created_at, updated_at, version
-		FROM seats WHERE event_id = $1 ORDER BY row_number, seat_number`
+		FROM seats
+		WHERE event_id = $1`
+
+	args := []interface{}{eventID}
+	argPos := 2
+
+	if status != "" {
+		query += fmt.Sprintf(" AND status = $%d", argPos)
+		args = append(args, status)
+		argPos++
+	}
+
+	if row > 0 {
+		query += fmt.Sprintf(" AND row_number = $%d", argPos)
+		args = append(args, row)
+		argPos++
+	}
+
+	query += fmt.Sprintf(" ORDER BY row_number, seat_number LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	args = append(args, pageSize, (page-1)*pageSize)
 
 	executor := r.getExecutor()
-	rows, err := executor.Query(query, eventID)
+	rows, err := executor.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query seats: %w", err)
 	}
@@ -213,5 +233,24 @@ func (r *seatRepository) ReleaseSeats(seatIDs []int64) error {
 		return fmt.Errorf("failed to release seats: %w", err)
 	}
 
+	return nil
+}
+
+func (r *seatRepository) Save(s models.Seat) error {
+	query := `
+		INSERT INTO seats(event_id, row_number, seat_number, place_id, status, price, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id`
+	if time.Time.IsZero(s.CreatedAt) {
+		s.CreatedAt = time.Now()
+	}
+	s.UpdatedAt = time.Now()
+
+	executor := r.getExecutor()
+	err := executor.QueryRow(query, s.EventID, s.RowNumber, s.SeatNumber, s.PlaceId, s.Status, s.Price, s.CreatedAt, s.UpdatedAt).Scan(&s.ID)
+
+	if err != nil {
+		return fmt.Errorf("failed to save seat: %w", err)
+	}
 	return nil
 }

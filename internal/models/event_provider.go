@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 // CreateOrderResponse представляет ответ на создание заказа
 type CreateOrderResponse struct {
 	OrderID string `json:"orderId"`
@@ -18,15 +16,10 @@ type OrderDetails struct {
 
 // Place представляет место в событии
 type Place struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Status    string    `json:"status"`
-	Price     int64     `json:"price"`
-	Row       int       `json:"row"`
-	Seat      int       `json:"seat"`
-	Section   string    `json:"section"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID     string `json:"id"`
+	Row    int    `json:"row"`
+	Seat   int    `json:"seat"`
+	IsFree bool   `json:"is_free"`
 }
 
 // SelectPlaceRequest представляет запрос на выбор места
