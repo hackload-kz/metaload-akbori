@@ -4,10 +4,16 @@ import (
 	"biletter-service/internal/middleware"
 	"biletter-service/internal/models"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
+
+// isUnauthorizedError проверяет, является ли ошибка unauthorized
+func isUnauthorizedError(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "unauthorized")
+}
 
 func (h *Handlers) CreateBooking(c *gin.Context) {
 	currentUser, ok := middleware.GetCurrentUser(c)
@@ -65,7 +71,11 @@ func (h *Handlers) CancelBooking(c *gin.Context) {
 	err := h.services.Booking.CancelBooking(&req, currentUser.UserID)
 	if err != nil {
 		h.logger.Error("Failed to cancel booking", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if isUnauthorizedError(err) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
@@ -88,7 +98,11 @@ func (h *Handlers) InitiatePayment(c *gin.Context) {
 	paymentURL, err := h.services.Payment.InitiatePayment(&req, currentUser.UserID)
 	if err != nil {
 		h.logger.Error("Failed to initiate payment", zap.Error(err))
-		c.JSON(http.StatusConflict, nil)
+		if isUnauthorizedError(err) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		}
 		return
 	}
 

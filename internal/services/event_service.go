@@ -82,7 +82,7 @@ func (s *eventService) FindEvents(query *string, date *time.Time, page, pageSize
 		return nil, err
 	}
 
-	var response []models.ListEventsResponseItem
+	var response = []models.ListEventsResponseItem{}
 	for _, event := range events {
 		response = append(response, models.ListEventsResponseItem{
 			ID:    event.ID,
