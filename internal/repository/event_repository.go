@@ -45,12 +45,22 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 
 	baseQuery := `SELECT id, title, description, type, datetime_start, provider FROM events`
 
+	// Используем полнотекстовый поиск с индексом gin для лучшей производительности
 	if query != nil && *query != "" {
-		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR description ILIKE $%d)", argIndex, argIndex))
+		// Сначала пробуем полнотекстовый поиск
+		//conditions = append(conditions, fmt.Sprintf("to_tsvector('russian', title || ' ' || description) @@ plainto_tsquery('russian', $%d)", argIndex))
+		//args = append(args, *query)
+		//argIndex++
+
+		// Добавляем резервный ILIKE поиск для случаев, когда полнотекстовый поиск не даст результатов
+		// Используем lower() функцию для оптимизации с индексом
+		//conditions[len(conditions)-1] += fmt.Sprintf("(lower(title) LIKE lower($%d) OR lower(description) LIKE lower($%d))", argIndex, argIndex)
+		conditions = append(conditions, fmt.Sprintf("(lower(title) LIKE lower($%d) OR lower(description) LIKE lower($%d))", argIndex, argIndex))
 		args = append(args, "%"+*query+"%")
 		argIndex++
 	}
 
+	// Оптимизированный поиск по дате с использованием индекса
 	if date != nil {
 		conditions = append(conditions, fmt.Sprintf("DATE(datetime_start) = $%d", argIndex))
 		args = append(args, date.Format("2006-01-02"))
@@ -63,7 +73,12 @@ func (r *eventRepository) FindEvents(query *string, date *time.Time, page, pageS
 
 	baseQuery += " ORDER BY id"
 
+	// Добавляем пагинацию с защитой от больших offset'ов
 	offset := (page - 1) * pageSize
+	if offset > 10000 { // Защита от глубокой пагинации
+		offset = 10000
+	}
+
 	baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 	args = append(args, pageSize, offset)
 

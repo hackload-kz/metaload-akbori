@@ -26,7 +26,7 @@ func NewEventService(eventRepo repository.EventRepository, cacheClient cache.Cac
 	return &eventService{
 		eventRepo:   eventRepo,
 		cacheClient: cacheClient,
-		cacheTTL:    10 * time.Minute,
+		cacheTTL:    15 * time.Minute,
 	}
 }
 
