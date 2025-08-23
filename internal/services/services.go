@@ -35,7 +35,7 @@ func New(repos *repository.Repository, cacheClient cache.Cache, eventPublisher b
 	return &Services{
 		Event:          NewEventService(repos.Event, cacheClient),
 		Booking:        NewBookingService(repos.Booking, repos.BookingSeat, repos.Seat, repos.Event, repos.TxManager, eventPublisher, cfg.Kafka.Topics.BookingEvents),
-		Seat:           NewSeatService(repos.Seat),
+		Seat:           NewSeatService(repos.Seat, eventProvider),
 		Payment:        paymentService,
 		User:           userService,
 		EventProvider:  eventProvider,
