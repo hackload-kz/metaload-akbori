@@ -18,6 +18,7 @@ type Services struct {
 	EventProvider  EventProviderService
 	PaymentGateway PaymentGatewayService
 	Reset          ResetService
+	Analytics      AnalyticsService
 }
 
 func New(repos *repository.Repository, cacheClient cache.Cache, eventPublisher broker.Publisher, cfg *config.Config, logger *zap.Logger) *Services {
@@ -42,5 +43,6 @@ func New(repos *repository.Repository, cacheClient cache.Cache, eventPublisher b
 		EventProvider:  eventProvider,
 		PaymentGateway: paymentGateway,
 		Reset:          NewResetService(repos.Booking, repos.Seat, repos.TxManager, logger),
+		Analytics:      NewAnalyticsService(repos.Seat, repos.Booking, logger),
 	}
 }

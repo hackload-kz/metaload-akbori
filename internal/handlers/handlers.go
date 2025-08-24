@@ -33,6 +33,9 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 		// Reset endpoint (публичный для удобства тестирования)
 		api.POST("/reset", h.ResetData)
 
+		// Analytics endpoint (публичный)
+		api.GET("/analytics", h.GetAnalytics)
+
 		// Payment endpoints (webhooks and redirects - no auth required)
 		paymentHandler := NewPaymentHandler(h.services.Payment, h.logger)
 		payments := api.Group("/payments")

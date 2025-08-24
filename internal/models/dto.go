@@ -51,3 +51,13 @@ type CancelBookingRequest struct {
 type InitiatePaymentRequest struct {
 	BookingID int64 `json:"booking_id" validate:"required"`
 }
+
+type AnalyticsResponse struct {
+	EventID       int64  `json:"event_id"`
+	TotalSeats    int    `json:"total_seats"`
+	SoldSeats     int    `json:"sold_seats"`
+	ReservedSeats int    `json:"reserved_seats"`
+	FreeSeats     int    `json:"free_seats"`
+	TotalRevenue  string `json:"total_revenue"`
+	BookingsCount int    `json:"bookings_count"`
+}

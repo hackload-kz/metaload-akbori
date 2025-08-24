@@ -17,6 +17,7 @@ type SeatRepository interface {
 	ReserveSeats(seatIDs []int64, userID int) error
 	ReleaseSeats(seatIDs []int64) error
 	ResetAllStatus() error
+	GetSeatStatistics(eventID int64) (map[string]int, string, error)
 	Save(s models.Seat) error
 	WithTx(tx *sql.Tx) SeatRepository
 }
@@ -266,4 +267,54 @@ func (r *seatRepository) ResetAllStatus() error {
 	}
 
 	return nil
+}
+
+func (r *seatRepository) GetSeatStatistics(eventID int64) (map[string]int, string, error) {
+	// Запрос для получения статистики по местам
+	query := `
+		SELECT status, COUNT(*) as count 
+		FROM seats 
+		WHERE event_id = $1 
+		GROUP BY status`
+
+	executor := r.getExecutor()
+	rows, err := executor.Query(query, eventID)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to query seat statistics: %w", err)
+	}
+	defer rows.Close()
+
+	stats := make(map[string]int)
+	totalSeats := 0
+
+	for rows.Next() {
+		var status string
+		var count int
+		err := rows.Scan(&status, &count)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to scan seat statistics: %w", err)
+		}
+		stats[status] = count
+		totalSeats += count
+	}
+
+	// Добавляем общее количество мест
+	stats["total"] = totalSeats
+
+	// Запрос для получения выручки с проданных мест
+	revenueQuery := `
+		SELECT COALESCE(SUM(price), 0) as total_revenue 
+		FROM seats 
+		WHERE event_id = $1 AND status = 'SOLD'`
+
+	var totalRevenue float64
+	err = executor.QueryRow(revenueQuery, eventID).Scan(&totalRevenue)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to query total revenue: %w", err)
+	}
+
+	// Форматируем сумму как строку
+	revenueStr := fmt.Sprintf("%.2f", totalRevenue)
+
+	return stats, revenueStr, nil
 }

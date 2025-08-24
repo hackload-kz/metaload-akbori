@@ -16,6 +16,7 @@ type BookingRepository interface {
 	GetAll() ([]models.Booking, error)
 	GetByOrderID(orderID string) (*models.Booking, error)
 	DeleteAll() error
+	GetBookingStatistics(eventID int64) (int, string, error)
 	WithTx(tx *sql.Tx) BookingRepository
 }
 
@@ -216,4 +217,17 @@ func (r *bookingRepository) DeleteAll() error {
 	}
 
 	return nil
+}
+
+func (r *bookingRepository) GetBookingStatistics(eventID int64) (int, string, error) {
+	query := `SELECT COUNT(*) FROM bookings WHERE event_id = $1`
+
+	executor := r.getExecutor()
+	var count int
+	err := executor.QueryRow(query, eventID).Scan(&count)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get booking statistics: %w", err)
+	}
+
+	return count, "", nil
 }

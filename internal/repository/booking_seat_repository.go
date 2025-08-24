@@ -165,7 +165,7 @@ func (r *bookingSeatRepository) Update(bookingSeat *models.BookingSeat) (*models
 		WHERE id = $3`
 
 	executor := r.getExecutor()
-	err := executor.QueryRow(query, bookingSeat.ID, bookingSeat.SeatID, bookingSeat.ID)
+	_, err := executor.Exec(query, bookingSeat.BookingID, bookingSeat.SeatID, bookingSeat.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to update bookingSeat: %w", err)
