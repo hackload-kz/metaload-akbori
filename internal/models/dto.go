@@ -18,11 +18,11 @@ type ListEventsResponseItem struct {
 }
 
 type ListSeatsResponseItem struct {
-	ID         int64           `json:"id"`
-	RowNumber  int             `json:"row_number"`
-	SeatNumber int             `json:"seat_number"`
-	Status     SeatStatus      `json:"status"`
-	Price      decimal.Decimal `json:"price"`
+	ID     int64           `json:"id"`
+	Row    int             `json:"row"`
+	Number int             `json:"number"`
+	Status SeatStatus      `json:"status"`
+	Price  decimal.Decimal `json:"price"`
 }
 
 type ListBookingsResponseItem struct {

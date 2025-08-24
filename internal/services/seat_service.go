@@ -38,11 +38,11 @@ func (s *seatService) GetSeatsByEvent(eventID int64, status string, row int64, p
 	var response []models.ListSeatsResponseItem
 	for _, seat := range seats {
 		response = append(response, models.ListSeatsResponseItem{
-			ID:         seat.ID,
-			RowNumber:  seat.RowNumber,
-			SeatNumber: seat.SeatNumber,
-			Status:     seat.Status,
-			Price:      seat.Price,
+			ID:     seat.ID,
+			Row:    seat.RowNumber,
+			Number: seat.SeatNumber,
+			Status: seat.Status,
+			Price:  seat.Price,
 		})
 	}
 
