@@ -104,10 +104,11 @@ func (s *seatService) FillSeats() {
 	for i := 0; i < 100; i++ {
 		places, err := s.eventProvider.GetPlaces(ctx, &page, &pageSize)
 		if err != nil {
+			fmt.Printf("failed to get places: %v", err)
 			return
 		}
 		for _, place := range places {
-			price := s.getPrice(seatCount)
+			price := s.getPrice(place)
 			seat := models.Seat{
 				EventID:    eventId,
 				RowNumber:  place.Row,
@@ -127,14 +128,14 @@ func (s *seatService) FillSeats() {
 	}
 }
 
-func (s *seatService) getPrice(seatCount int) decimal.Decimal {
-	if seatCount <= 10_000 {
+func (s *seatService) getPrice(place *models.Place) decimal.Decimal {
+	if place.Row <= 10_000 {
 		return decimal.NewFromInt(40_000)
-	} else if seatCount <= 25_000 {
+	} else if place.Row <= 25_000 {
 		return decimal.NewFromInt(80_000)
-	} else if seatCount <= 45_000 {
+	} else if place.Row <= 45_000 {
 		return decimal.NewFromInt(120_000)
-	} else if seatCount <= 70_000 {
+	} else if place.Row <= 70_000 {
 		return decimal.NewFromInt(160_000)
 	}
 	return decimal.NewFromInt(200_000)

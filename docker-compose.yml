@@ -50,6 +50,9 @@ services:
 
       # Kafka configuration
       KAFKA_BROKERS: biletter-kafka:29092
+
+      # External ticketing service
+      #HACKLOAD_BASE_URL: https://hub.hackload.kz/event/195847/event-provider
     networks:
       - biletter-net
     depends_on:
