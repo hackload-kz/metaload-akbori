@@ -30,6 +30,9 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 			events.POST("/cache/clear", h.ClearEventsCache)
 		}
 
+		// Reset endpoint (публичный для удобства тестирования)
+		api.POST("/reset", h.ResetData)
+
 		// Payment endpoints (webhooks and redirects - no auth required)
 		paymentHandler := NewPaymentHandler(h.services.Payment, h.logger)
 		payments := api.Group("/payments")

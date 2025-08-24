@@ -115,7 +115,7 @@ func (s *bookingService) GetBookingsByUser(userID int) ([]models.ListBookingsRes
 		return nil, fmt.Errorf("failed to get booking seats: %w", err)
 	}
 
-	var response []models.ListBookingsResponseItem
+	var response = []models.ListBookingsResponseItem{}
 	for _, booking := range bookings {
 		// Заполняем места
 		seats := []models.ListBookingsResponseItemSeat{}

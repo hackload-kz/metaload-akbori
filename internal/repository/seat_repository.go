@@ -16,8 +16,9 @@ type SeatRepository interface {
 	Update(seat *models.Seat) error
 	ReserveSeats(seatIDs []int64, userID int) error
 	ReleaseSeats(seatIDs []int64) error
-	WithTx(tx *sql.Tx) SeatRepository
+	ResetAllStatus() error
 	Save(s models.Seat) error
+	WithTx(tx *sql.Tx) SeatRepository
 }
 
 type seatRepository struct {
@@ -252,5 +253,17 @@ func (r *seatRepository) Save(s models.Seat) error {
 	if err != nil {
 		return fmt.Errorf("failed to save seat: %w", err)
 	}
+	return nil
+}
+
+func (r *seatRepository) ResetAllStatus() error {
+	query := `UPDATE seats SET status = $1, updated_at = $2`
+
+	executor := r.getExecutor()
+	_, err := executor.Exec(query, models.SeatStatusFree, time.Now())
+	if err != nil {
+		return fmt.Errorf("failed to reset all seats status: %w", err)
+	}
+
 	return nil
 }

@@ -15,6 +15,7 @@ type BookingRepository interface {
 	GetByUserID(userID int) ([]models.Booking, error)
 	GetAll() ([]models.Booking, error)
 	GetByOrderID(orderID string) (*models.Booking, error)
+	DeleteAll() error
 	WithTx(tx *sql.Tx) BookingRepository
 }
 
@@ -197,4 +198,22 @@ func (r *bookingRepository) GetByOrderID(orderID string) (*models.Booking, error
 	}
 
 	return &booking, nil
+}
+
+func (r *bookingRepository) DeleteAll() error {
+	executor := r.getExecutor()
+
+	// Сначала удаляем все booking_seats (FK constraint)
+	_, err := executor.Exec("DELETE FROM booking_seats")
+	if err != nil {
+		return fmt.Errorf("failed to delete booking_seats: %w", err)
+	}
+
+	// Затем удаляем все bookings
+	_, err = executor.Exec("DELETE FROM bookings")
+	if err != nil {
+		return fmt.Errorf("failed to delete bookings: %w", err)
+	}
+
+	return nil
 }

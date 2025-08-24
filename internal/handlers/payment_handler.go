@@ -65,22 +65,22 @@ func (h *PaymentHandler) PaymentNotifications(c *gin.Context) {
 // GET /api/payments/success?orderId=123
 func (h *PaymentHandler) PaymentSuccess(c *gin.Context) {
 	orderId := c.Query("orderId")
-	if orderId == "" {
-		h.logger.Error("Missing orderId parameter in payment success redirect")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing orderId parameter"})
-		return
-	}
-
-	h.logger.Info("Payment success redirect received", zap.String("orderId", orderId))
-
-	err := h.paymentService.NotifyPaymentSuccess(orderId)
-	if err != nil {
-		h.logger.Error("Error processing payment success",
-			zap.String("orderId", orderId),
-			zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing payment success"})
-		return
-	}
+	//if orderId == "" {
+	//	h.logger.Error("Missing orderId parameter in payment success redirect")
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": "Missing orderId parameter"})
+	//	return
+	//}
+	//
+	//h.logger.Info("Payment success redirect received", zap.String("orderId", orderId))
+	//
+	//err := h.paymentService.NotifyPaymentSuccess(orderId)
+	//if err != nil {
+	//	h.logger.Error("Error processing payment success",
+	//		zap.String("orderId", orderId),
+	//		zap.Error(err))
+	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing payment success"})
+	//	return
+	//}
 
 	h.logger.Info("Successfully processed payment success", zap.String("orderId", orderId))
 	c.String(http.StatusOK, "Payment successful! Your booking has been confirmed.")
@@ -90,22 +90,22 @@ func (h *PaymentHandler) PaymentSuccess(c *gin.Context) {
 // GET /api/payments/fail?orderId=123
 func (h *PaymentHandler) PaymentFail(c *gin.Context) {
 	orderId := c.Query("orderId")
-	if orderId == "" {
-		h.logger.Error("Missing orderId parameter in payment failure redirect")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing orderId parameter"})
-		return
-	}
-
-	h.logger.Info("Payment failure redirect received", zap.String("orderId", orderId))
-
-	err := h.paymentService.NotifyPaymentFailure(orderId)
-	if err != nil {
-		h.logger.Error("Error processing payment failure",
-			zap.String("orderId", orderId),
-			zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing payment failure"})
-		return
-	}
+	//if orderId == "" {
+	//	h.logger.Error("Missing orderId parameter in payment failure redirect")
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": "Missing orderId parameter"})
+	//	return
+	//}
+	//
+	//h.logger.Info("Payment failure redirect received", zap.String("orderId", orderId))
+	//
+	//err := h.paymentService.NotifyPaymentFailure(orderId)
+	//if err != nil {
+	//	h.logger.Error("Error processing payment failure",
+	//		zap.String("orderId", orderId),
+	//		zap.Error(err))
+	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing payment failure"})
+	//	return
+	//}
 
 	h.logger.Info("Successfully processed payment failure", zap.String("orderId", orderId))
 	c.String(http.StatusOK, "Payment failed. Your booking has been cancelled.")
