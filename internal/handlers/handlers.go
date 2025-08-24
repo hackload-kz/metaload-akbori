@@ -36,6 +36,9 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 		// Analytics endpoint (публичный)
 		api.GET("/analytics", h.GetAnalytics)
 
+		// Seats endpoint (публичный)
+		api.GET("/seats", h.ListSeats)
+
 		// Payment endpoints (webhooks and redirects - no auth required)
 		paymentHandler := NewPaymentHandler(h.services.Payment, h.logger)
 		payments := api.Group("/payments")
@@ -50,7 +53,6 @@ func (h *Handlers) RegisterRoutes(router *gin.Engine) {
 		{
 			seats := auth.Group("/seats")
 			{
-				seats.GET("", h.ListSeats)
 				seats.PATCH("/select", h.SelectSeat)
 				seats.PATCH("/release", h.ReleaseSeat)
 				seats.POST("/fill-big-event", h.FillSeats)

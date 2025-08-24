@@ -30,4 +30,11 @@ case "$1" in
       --network biletter-net \
       grafana/k6 run k6-scripts/archive-10000-test.js
     ;;
+  booking-test)
+    docker run --rm \
+      -e API_URL=http://biletter-app:8081 \
+      -v "$PWD":/work -w /work \
+      --network biletter-net \
+      grafana/k6 run k6-scripts/booking-test.js
+    ;;
 esac

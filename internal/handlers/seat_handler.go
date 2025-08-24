@@ -83,7 +83,7 @@ func (h *Handlers) SelectSeat(c *gin.Context) {
 		if strings.Contains(strings.ToLower(err.Error()), "unauthorized") {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		} else {
-			c.JSON(http.StatusInsufficientStorage, gin.H{"error": err.Error()})
+			c.JSON(419, gin.H{"error": err.Error()})
 		}
 		return
 	}
@@ -110,7 +110,7 @@ func (h *Handlers) ReleaseSeat(c *gin.Context) {
 		if strings.Contains(strings.ToLower(err.Error()), "unauthorized") {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		} else {
-			c.JSON(http.StatusInsufficientStorage, gin.H{"error": err.Error()})
+			c.JSON(419, gin.H{"error": err.Error()})
 		}
 		return
 	}
